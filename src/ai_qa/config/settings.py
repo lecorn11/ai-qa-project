@@ -1,0 +1,26 @@
+from pydantic_settings import BaseSettings,SettingsConfigDict
+from pydantic import Field
+
+class Settings(BaseSettings):
+    """ 应用配置类，自动从环境变量/.env 文件加载配置 """
+
+    # LLM 配置
+    llm_api_key: str = Field(alias="LLM_API_KEY")
+    llm_base_url: str = Field(default="https://dashscope.aliyuncs.com/compatible-mode/v1", alias="LLM_BASE_URL")
+    llm_model : str = Field(default="qwen-turbo", alias="LLM_MODEL_NAME")
+
+    # 应用配置
+    app_env: str = Field(default="development", alias="APP_ENV")
+    debug: bool = Field(default= True, alias= "DEBUG")
+
+    # Pydantic V2 配置
+    model_config = SettingsConfigDict(
+        env_file = ".env",
+        env_file_encoding = "utf-8",
+        populate_by_name = True,  # 允许通过字段名或别名填充
+        extra="ignore"  # 忽略额外的字段
+
+    )
+
+# 创建全局配置实例
+settings = Settings()

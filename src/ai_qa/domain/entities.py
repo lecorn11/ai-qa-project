@@ -1,0 +1,51 @@
+from dataclasses import dataclass
+from enum import Enum
+from typing import Optional
+from datetime import datetime
+
+class MessageRole(Enum):
+    """消息角色枚举"""
+    SYSTEM = "system"
+    USER = "user"
+    ASSISTANT = "assistant"
+
+@dataclass
+class Message:
+    """消息实体"""
+    role: MessageRole
+    content: str
+    timestamp: datetime = None
+
+    def __post_init__(self):
+        if self.timestamp is None:
+            self.timestamp = datetime.now()
+    
+    def to_dict(self) -> dict:
+        """转换为字典格式（用于 API 调用）"""
+        return {
+            "role": self.role.value,
+            "content": self.content
+        }
+
+@dataclass
+class Conversation:
+    """对话实体"""
+    session_id: str
+    messages: list[Message] = None
+    created_at: datetime = None
+
+    def __post_init__(self):
+        if self.messages is None:
+            self.messages = []
+        if self.created_at is None:
+            self.created_at = datetime.now()
+    
+    def add_message(self, role: MessageRole, content: str) -> Message:
+        """添加消息到对话"""
+        message = Message(role=role, content=content)
+        self.messages.append(message)
+        return message
+
+    def get_messages_as_dicts(self) -> list[dict]:
+        """获取所有消息的字典格式"""
+        return [msg.to_dict() for msg in self.messages]

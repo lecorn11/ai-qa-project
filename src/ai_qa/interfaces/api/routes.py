@@ -1,9 +1,11 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 
 from ai_qa.config.settings import settings
 from ai_qa.infrastructure.llm.qwen_adapter import QwenAdapter
 from ai_qa.infrastructure.memory.in_memory import InMemoryConversationMemory
 from ai_qa.application.chat_service import ChatService
+from ai_qa.domain.ports import ConversationMemoryPort
+from ai_qa.interfaces.api.dependecnies import get_chat_service,get_memory
 from ai_qa.models.schemas import (
     SendMessageRequest,
     MessageResponse,
@@ -16,20 +18,13 @@ from ai_qa.models.schemas import (
 # 创建路由器
 router = APIRouter()
 
-# 创建服务实例（依赖注入，后续优化）
-llm = QwenAdapter(
-    api_key = settings.llm_api_key,
-    base_url = settings.llm_base_url,
-    model_name = settings.llm_model
-)
-memory = InMemoryConversationMemory()
-chat_service = ChatService(
-    llm = llm,
-    memory = memory
-)
-
 @router.post("/conversations/{session_id}/messages", response_model=MessageResponse)
-async def send_message(session_id: str, request: SendMessageRequest):
+async def send_message(
+    session_id: str,
+    request: SendMessageRequest,
+    chat_service: ChatService = Depends(get_chat_service),
+    memory: ConversationMemoryPort = Depends(get_memory)
+):
     """发送消息并获取 AI 回复"""
 
     response_content = chat_service.chat(session_id, request.content)
@@ -45,7 +40,10 @@ async def send_message(session_id: str, request: SendMessageRequest):
     )
 
 @router.get("/conversations/{session_id}", response_model=ConversationResponse)
-async def get_conversation(session_id: str):
+async def get_conversation(
+    session_id: str,
+    memory: ConversationMemoryPort = Depends(get_memory)
+):
     """获取会话的所有消息"""
 
     conversation = memory.get_conversation(session_id)
@@ -65,7 +63,10 @@ async def get_conversation(session_id: str):
     )
 
 @router.delete("/conversations/{session_id}", response_model=SuccessResponse)
-async def delete_conversation(session_id: str):
+async def delete_conversation(
+    session_id: str,
+    chat_service: ChatService = Depends(get_chat_service),
+):
     """删除会话"""
 
     chat_service.clear_conversation(session_id)

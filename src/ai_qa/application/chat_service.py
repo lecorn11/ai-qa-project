@@ -1,3 +1,4 @@
+from typing import Generator
 from ai_qa.domain.entities import Conversation, MessageRole
 from ai_qa.domain.ports import LLMPort,ConversationMemoryPort
 
@@ -49,6 +50,40 @@ class ChatService:
 
         return response
     
+    def chat_stream(self, session_id: str, user_input: str) -> Generator:
+        """ 流式处理用户输入，逐步返回 AI 回复
+        
+        Args:
+            session_id: 会话 ID
+            user_input: 用户输入内容
+            
+        Returns:
+            AI 回复内容
+        """
+
+        # 1. 获取对话历史
+        conversation = self._memory.get_conversation(session_id)
+
+        # 2. 添加用户消息
+        conversation.add_message(MessageRole.USER, user_input)
+
+        # 3. 调用 LLM  流式接口，获取回复
+
+        full_response = ""
+
+        for chunk in self._llm.chat_stream(
+            messages=conversation.messages,
+            system_prompt=self._system_prompt
+        ):
+            full_response += chunk
+            yield chunk
+
+        # 4. 添加 AI 完整回复到历史中
+        conversation.add_message(MessageRole.ASSISTANT, full_response)
+
+        # 5. 保存对话历史
+        self._memory.save_conversation(conversation)
+
     def clear_conversation(self, session_id: str) -> None:
         """清除指定会话的对话历史"""
         self._memory.clear_conversation(session_id)

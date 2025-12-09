@@ -1,3 +1,4 @@
+from typing import Generator
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 
@@ -18,10 +19,16 @@ class QwenAdapter(BaseLLMAdapter):
             model = self.model_name
         )
 
-    def chat(self, messages: list[Message], system_prompt: str = None) -> str:
-        """发送消息并获取回复"""
+        # 创建流式客户端
+        self._stream_client = ChatOpenAI(
+            api_key=self.api_key,
+            base_url=self.base_url,
+            model=self.model_name,
+            streaming=True
+        )
 
-        # 转换为 LangChain 消息格式
+    def _conver_message(self, messages: list[Message], system_prompt: str = None) -> list:
+        # 把消息转换为 LangChain 格式
         langchain_messages = []
 
         # 添加系统提示
@@ -37,7 +44,18 @@ class QwenAdapter(BaseLLMAdapter):
             elif msg.role == MessageRole.SYSTEM:
                 langchain_messages.append(SystemMessage(content=msg.content))
         
-        # 调用 API
+        return langchain_messages
+    
+    def chat(self, messages: list[Message], system_prompt: str = None) -> str:
+        """发送消息并获取回复"""
+        langchain_messages = self._conver_message(messages, system_prompt)
         response = self._client.invoke(langchain_messages)
-
         return response.content
+    
+    def chat_stream(self, messages: list[Message], system_prompt: str = None) -> Generator[str, None, None]:
+        """流式发送消息，逐步返回回复"""
+        langchain_messages = self._conver_message(messages, system_prompt)
+
+        for chunk in self._stream_client.stream(langchain_messages):
+            if chunk.content:
+                yield chunk.content

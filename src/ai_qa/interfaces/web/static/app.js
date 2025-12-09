@@ -67,7 +67,27 @@ function removeTypingIndicator() {
     }
 }
 
+function createStreamingMessage() {
+    const welcomeMsg = chatContainer.querySelector(".welcome-message");
+    if(welcomeMsg){
+        welcomeMsg.remove();
+    }
+
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message assistant';
+    messageDiv.innerHTML = `
+        <div class="message-content"></div>
+        <div class="message-time">${formatTime(new Date())}</div>
+    `;
+
+    chatContainer.appendChild(messageDiv);
+    scrollToBottom();
+
+    return messageDiv.querySelector('.message-content')
+}
+
 // ========== API 调用 ==========
+// 非流式调用
 async function sendMessage(content) {
     try {
         const response = await fetch(`${API_BASE_URL}/conversations/${SESSION_ID}/messages`, {
@@ -89,6 +109,48 @@ async function sendMessage(content) {
         throw error;
     }
 }
+// 流式调用
+async function sendMessageStream(content,onChunk) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/conversations/${SESSION_ID}/messages/stream`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ content }),
+        });
+
+        if (!response.ok) {
+            throw new Error('API 请求失败');
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+
+        while (true) {
+            const { done, value } = await reader.read();
+            
+            if(done) break;
+
+            const text = decoder.decode(value);
+            const lines = text.split('\n');
+            
+            for(const line of lines) {
+                if(line.startsWith('data: ')){
+                    const data = line.slice(6);
+                    if (data === '[DONE]'){
+                        return;
+                    }
+                    onChunk(data)
+                }
+            }
+
+        }
+    } catch (error) {
+        console.error('发送消息失败:', error);
+        throw error;
+    }
+}
 
 // ========== 事件处理 ==========
 async function handleSend() {
@@ -99,6 +161,7 @@ async function handleSend() {
     // 禁用输入
     messageInput.value = '';
     messageInput.disabled = true;
+    messageInput.style.height = 'auto';
     sendButton.disabled = true;
 
     // 显示用户消息
@@ -108,14 +171,22 @@ async function handleSend() {
     showTypingIndicator();
 
     try {
-        // 调用 API
-        const response = await sendMessage(content);
+        // // 调用 API
+        // const response = await sendMessage(content);
         
         // 移除加载动画
         removeTypingIndicator();
+        const contentElement = createStreamingMessage();
+        let fullContent = '';
+
+        await sendMessageStream(content, (chunk) => {
+            fullContent += chunk;
+            contentElement.innerHTML = escapeHtml(fullContent);
+            scrollToBottom();
+        });
         
-        // 显示 AI 回复
-        addMessage('assistant', response.content, response.timestamp);
+        // // 显示 AI 回复
+        // addMessage('assistant', response.content, response.timestamp);
     } catch (error) {
         removeTypingIndicator();
         addMessage('assistant', '抱歉，发生了错误，请稍后重试。');

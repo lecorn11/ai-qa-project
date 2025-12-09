@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Generator
 from .entities import Message, Conversation
 
 class LLMPort(ABC):
@@ -19,6 +20,12 @@ class LLMPort(ABC):
             AI 的回复内容
         """
         pass
+
+    @abstractmethod
+    def chat_stream(self, messages: list[Message], system_prompt: str = None) -> Generator[str, None, None]:
+        """流式发送消息，逐步返回回复"""
+        pass
+
 
 class ConversationMemoryPort(ABC):
     """对话记忆存储端口(抽象接口)

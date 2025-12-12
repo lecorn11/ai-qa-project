@@ -7,10 +7,16 @@ from datetime import datetime
 class SendMessageRequest(BaseModel):
     """发送消息请求模型"""
     content: str
+    use_knowledge: bool = False
 
-class createConversationRequest(BaseModel):
+class CreateConversationRequest(BaseModel):
     """创建会话请求"""
     title: str | None = None # 可选的会话标题
+
+class AddDocumentRequest(BaseModel):
+    """添加文档请求"""
+    content: str
+    title: str | None = None
 
 # ============ 响应模型 ============
 
@@ -35,6 +41,23 @@ class ConversationListItem(BaseModel):
 class ConversationListResponse(BaseModel):
     """会话列表响应"""
     conversations: list[ConversationListItem]
+
+class KnowledgeBaseStatus(BaseModel):
+    """知识库状态"""
+    name: str | None
+    document_count: int
+    is_ready: bool
+
+class DocumentInfo(BaseModel):
+    """文档信息"""
+    title: str
+    chunk_count: int
+    added_at: datetime
+
+class DocumentListResponse(BaseModel):
+    """文档列表响应"""
+    documents: list[DocumentInfo]
+    total_chunks: int
 
 # ============ 通用响应 ============
 

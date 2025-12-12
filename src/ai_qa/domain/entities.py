@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
 from datetime import datetime
@@ -49,3 +49,26 @@ class Conversation:
     def get_messages_as_dicts(self) -> list[dict]:
         """获取所有消息的字典格式"""
         return [msg.to_dict() for msg in self.messages]
+
+@dataclass
+class DocumentChunk:
+    """文档实体块"""
+    content: str
+    metadata: dict = field(default_factory=dict)
+    chunk_id: str = None
+
+    def __post_init__(self):
+        if self.chunk_id is None:
+            self.chunk_id = f"chunk_{hash(self.content)}"
+
+@dataclass
+class KnowledgeBase:
+    """知识库实体"""
+    name: str
+    description: str = ""
+    documnet_count: int = 0
+    create_at: datetime = None
+
+    def __post_init__(self):
+        if self.create_at is None:
+            self.create_at = datetime.now()

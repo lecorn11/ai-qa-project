@@ -8,6 +8,9 @@ class Settings(BaseSettings):
     llm_api_key: str = Field(alias="LLM_API_KEY")
     llm_base_url: str = Field(default="https://dashscope.aliyuncs.com/compatible-mode/v1", alias="LLM_BASE_URL")
     llm_model : str = Field(default="qwen-turbo", alias="LLM_MODEL_NAME")
+    
+    # Embedding 配置
+    embedding_model_name: str = Field(default="text-embedding-v3",alias="EMBEDDING_MODEL_NAME")
 
     # 应用配置
     app_env: str = Field(default="development", alias="APP_ENV")
@@ -19,7 +22,6 @@ class Settings(BaseSettings):
         env_file_encoding = "utf-8",
         populate_by_name = True,  # 允许通过字段名或别名填充
         extra="ignore"  # 忽略额外的字段
-
     )
 
 # 创建全局配置实例

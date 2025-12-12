@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Generator
-from .entities import Message, Conversation
+from .entities import DocumentChunk, Message, Conversation
 
 class LLMPort(ABC):
     """LLM 服务端口（抽象接口）
@@ -10,12 +10,12 @@ class LLMPort(ABC):
     """
 
     @abstractmethod
-    def chat(self,messages:list[Message],sys_prompt: str = None) -> str:
+    def chat(self,messages:list[Message],system_prompt: str = None) -> str:
         """发送消息并获取回复
 
         Args:
             messages: 消息列表
-            sys_prompt: 系统提示词(可选)
+            system_prompt: 系统提示词(可选)
         Returns:
             AI 的回复内容
         """
@@ -62,6 +62,38 @@ class ConversationMemoryPort(ABC):
         Args:
             session_id: 会话 ID
         """
+        pass
+
+
+class EmbeddingPort(ABC):
+    """向量化服务端口"""
+
+    @abstractmethod
+    def embed_texts(self, texts: list[str]) -> list[list[float]]:
+        """将文本列表转换为向量列表"""
+        pass
+
+    @abstractmethod
+    def embed_query(self, text: str) -> list[float]:
+        """将查询文本转换为向量"""
+        pass
+
+class VectorStorePort(ABC):
+    """向量存储端口"""
+
+    @abstractmethod
+    def add_documents(self, chunks: list[DocumentChunk]) -> None:
+        """添加文档块到向量存储"""
+        pass
+    
+    @abstractmethod
+    def search(self, query: str, top_k: int = 3) -> list[DocumentChunk]:
+        """搜索相关文档块"""
+        pass
+
+    @abstractmethod
+    def clear(self) -> None:
+        """清空向量存储"""
         pass
 
 

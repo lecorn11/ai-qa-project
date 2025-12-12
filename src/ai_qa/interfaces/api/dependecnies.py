@@ -1,10 +1,14 @@
 from functools import lru_cache
 
+from ai_qa.application.knowledge_service import KnowledgeService
 from ai_qa.config.settings import Settings
+from ai_qa.infrastructure.embedding.dashscope_embedding import DashScopeEmbeddingAdapter
 from ai_qa.infrastructure.llm.qwen_adapter import QwenAdapter
 from ai_qa.infrastructure.memory.in_memory import InMemoryConversationMemory
 from ai_qa.application.chat_service import ChatService
-from ai_qa.domain.ports import LLMPort, ConversationMemoryPort
+from ai_qa.domain.ports import EmbeddingPort, LLMPort, ConversationMemoryPort, VectorStorePort
+from ai_qa.infrastructure.vectorstore.faiss_store import FaissVectorStore
+from ai_qa.interfaces import api
 
 @lru_cache
 def get_settings() -> Settings:
@@ -26,9 +30,32 @@ def get_memory() -> ConversationMemoryPort:
     """获取记忆存储实例（单例）"""
     return InMemoryConversationMemory()
 
+@lru_cache
+def get_embedding() -> EmbeddingPort:
+    """获取 Embedding 实例（单例）"""
+    settings = get_settings()
+    return DashScopeEmbeddingAdapter(
+        model_name=settings.embedding_model_name,
+        api_key=settings.llm_api_key
+    )
+
+@lru_cache
+def get_vector_store() -> VectorStorePort:
+    """获取向量存储实例（单例）"""
+    embdeding = get_embedding()
+    return FaissVectorStore(embdeding)
+
 def get_chat_service() -> ChatService:
     """获取聊天服务"""
     return ChatService(
         llm=get_llm(),
         memory=get_memory()
+    )
+
+@lru_cache
+def get_knowledge_service() -> KnowledgeService:
+    """获取知识库服务（单例）"""
+    return KnowledgeService(
+        vector_store=get_vector_store(),
+        llm=get_llm()
     )

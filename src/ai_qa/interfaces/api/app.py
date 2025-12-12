@@ -4,16 +4,18 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
 from ai_qa.interfaces.api.routes import router
+from ai_qa.interfaces.api.knowledge_routes import router as knowledge_router
 
 # 创建 FasrAPI 应用
 app = FastAPI(
     title="AI 智能问答系统",
-    description="基于 LangChain 的智能问答 API",
-    version="0.1.0"
+    description="基于 LangChain 的智能问答 API, 支持 RAG 知识库",
+    version="0.2.0"
 )
 
 # 注册 API 路由
 app.include_router(router, prefix="/api/v1")
+app.include_router(knowledge_router, prefix="/api/v1")
 
 # 静态文件目录
 STATIC_DIR = Path(__file__).parent.parent / "web" / "static"

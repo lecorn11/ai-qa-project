@@ -11,30 +11,60 @@
         <!-- 头部 -->
         <header class="header">
             <h1>AI 智能问答</h1>
+            <span class="subtitle">基于 LangChain + RAG</span>
         </header>
 
-        <!-- 对话区域 -->
+        <!-- 聊天区域 -->
         <main class="chat-container" id="chatContainer">
             <div class="welcome-message">
-                <p>👋 你好！我是 AI 助手，有什么可以帮助你的吗？</p>
+                <p>👋 你好！我是 AI 助手，可以回答你的问题。</p>
+                <p>💡 上传文档后开启「知识库」模式，我会基于文档内容回答。</p>
             </div>
         </main>
 
+        <!-- 知识库面板 -->
+        <div class="knowledge-panel" id="knowledgePanel" style="display: none;">
+            <div class="panel-header">
+                <span>📚 知识库设置</span>
+                <button class="close-btn" onclick="toggleKnowledgePanel()">✕</button>
+            </div>
+            <div class="panel-content">
+                <div class="status-row">
+                    <span>状态：</span>
+                    <span id="kbStatus">未初始化</span>
+                </div>
+                <div class="status-row">
+                    <span>文档块：</span>
+                    <span id="kbChunkCount">0</span>
+                </div>
+                <div class="toggle-row">
+                    <span>使用知识库回答</span>
+                    <label class="switch">
+                        <input type="checkbox" id="useKnowledge">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="upload-section">
+                    <textarea id="docContent" placeholder="粘贴文档内容..."></textarea>
+                    <input type="text" id="docTitle" placeholder="文档标题（可选）">
+                    <button onclick="uploadDocument()">📤 添加到知识库</button>
+                </div>
+                <button class="clear-btn" onclick="clearKnowledge()">🗑️ 清空知识库</button>
+            </div>
+        </div>
+
         <!-- 输入区域 -->
         <footer class="input-container">
-            <div class="input-wrapper">
-                <textarea 
-                    id="messageInput" 
-                    placeholder="输入消息..." 
-                    rows="1"
-                    autofocus
-                ></textarea>
-                <button id="sendButton" type="button">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M22 2L11 13M22 2L15 22L11 13M11 13L2 9L22 2"/>
-                    </svg>
-                </button>
-            </div>
+            <button class="kb-toggle-btn" id="kbToggleBtn" onclick="toggleKnowledgePanel()">
+                📚
+            </button>
+            <input 
+                type="text" 
+                id="messageInput" 
+                placeholder="请输入消息..." 
+                onkeypress="handleKeyPress(event)"
+            >
+            <button onclick="sendMessage()">发送</button>
         </footer>
     </div>
 

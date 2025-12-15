@@ -1,36 +1,73 @@
 # AI 智能问答系统
-基于 LangChain 和 FastAPI 构建的智能对话应用，支持流式响应，采用 Clean Architecture 架构设计
+基于 LangChain 和 FastAPI 构建的智能对话应用，支 持RAG 知识库问答、流式响应，采用 Clean Architecture 架构设计
 
 ## ✨ 功能特性
-- **智能对话**：接入通义千问大模型，支持多轮对话
-- **流式响应**：AI 回复逐字显示，类似打字机体验
+- **智能对话**：接入通义千问大模型，支持多轮对话，上下文记忆
+- **RAG 知识库**：上传文档构建知识库，基于文档内容精准回答
+- **流式响应**：AI 回复逐字显示，打字机效果体验
 - **Clean Architecture**：清晰的分层架构，易于扩展和维护
 - **可拔插设计**：轻松切换不同的 LLM 提供商
-- **对话记忆**：支持上下文记忆，理解连续对话
 
 ## 🛠️ 技术栈
 | 层级 | 技术 |
 |-----|------|
 |**后端框架**| FastAPI |
 |**AI 框架**| LangChain |
-|**LLM**|  通义千问（Qwen） |
+|**LLM**| 通义千问（Qwen） |
+|**Embedding**| DashScope text-embedding-v3 |
+|**向量数据库**| FAISS |
 |**前端**|HTML + CSS + JavaScript|
 |**配置管理**| Pydantic Settings |
+
+## 🏗️ 系统架构
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      Interfaces 接口层                       │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
+│  │   Web UI    │  │  REST API   │  │        CLI          │  │
+│  └─────────────┘  └─────────────┘  └─────────────────────┘  │
+├─────────────────────────────────────────────────────────────┤
+│                    Application 应用层                        │
+│  ┌─────────────────────┐  ┌─────────────────────────────┐   │
+│  │    ChatService      │  │    KnowledgeService         │   │
+│  │    (对话服务)        │  │    (知识库服务)              │   │
+│  └─────────────────────┘  └─────────────────────────────┘   │
+├─────────────────────────────────────────────────────────────┤
+│                      Domain 领域层                           │
+│  ┌──────────────┐  ┌──────────────────────────────────────┐ │
+│  │   Entities   │  │              Ports                   │ │
+│  │ Message      │  │ LLMPort, EmbeddingPort,              │ │
+│  │ Conversation │  │ VectorStorePort, MemoryPort          │ │
+│  │ DocumentChunk│  │                                      │ │
+│  └──────────────┘  └──────────────────────────────────────┘ │
+├─────────────────────────────────────────────────────────────┤
+│                 Infrastructure 基础设施层                    │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐            │
+│  │ QwenAdapter│  │ DashScope  │  │   FAISS    │            │
+│  │   (LLM)    │  │ (Embedding)│  │ (Vector DB)│            │
+│  └────────────┘  └────────────┘  └────────────┘            │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ## 📁 项目结构
 ```
 ai-qa-project/
 ├── src/ai_qa/
 │   ├── domain/                 # 领域层：实体和接口定义
-│   │   ├── entities.py         # Message, Conversation 实体
-│   │   └── ports.py            # LLMPort, MemoryPort 接口
+│   │   ├── entities.py         # Message, Conversation, DocumentChunk实体
+│   │   └── ports.py            # LLMPort, MemoryPort, EmbeddingPort, VectorStorePort
 │   │
 │   ├── application/            # 应用层：业务逻辑编排
 │   │   └── chat_service.py     # 聊天服务
+│   │   └── knowledge_service.py # 知识库服务（RAG）
 │   │
 │   ├── infrastructure/         # 基础设施层：外部服务实现
 │   │   ├── llm/
-│   │   │   └── qwen_adapter.py # 通义千问适配器
+│   │   │   └── qwen_adapter.py # 通义千问LLM适配器
+│   │   ├── embedding/
+│   │   │   └── dashscope_embedding.py # 通义千问嵌入模型适配器
+│   │   ├── vectorstore/
+│   │   │   └── faiss_store.py  # Meta 向量数据库
 │   │   └── memory/
 │   │       └── in_memory.py    # 内存存储
 │   │
@@ -39,10 +76,12 @@ ai-qa-project/
 │   │   ├── cli/                # 命令行入口
 │   │   └── web/                # 前端静态文件
 │   │
+│   ├── models/                 # 请求/响应模型
+│   │   └── schemas.py
+│   │
 │   └── config/                 # 配置管理
 │       └── settings.py
 │
-├── .env                        # 环境变量（不提交到 Git）
 ├── .env.example                # 环境变量示例
 ├── pyproject.toml              # 项目配置
 ├── requirements.txt            # 依赖列表
@@ -78,6 +117,7 @@ cp .env.example .env
 LLM_API_KEY=your-api-key-here
 LLM_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
 LLM_MODEL_NAME=qwen-turbo
+EMBEDDING_MODEL_NAME=text-embedding-v3
 ```
 
 ### 5. 启动服务
@@ -91,22 +131,62 @@ python run_api.py
 - API 文档：http://localhost:8000/docs
 
 ## 📖 API 文档
+### 对话接口
+
 | 方法 | 端点 | 描述 |
 |-----|------|------|
-| POST | `/api/v1/conversations/{session_id}/messages` | 发送消息（非流式） |
+| POST | `/api/v1/conversations/{session_id}/messages` | 发送消息 |
 | POST | `/api/v1/conversations/{session_id}/messages/stream` | 发送消息（流式） |
 | GET | `/api/v1/conversations/{session_id}/messages` | 获取对话历史 |
 | GET | `/api/v1/conversations` | 获取会话列表 |
 | DELETE | `/api/v1/conversations/{session_id}` | 删除会话 |
 
+### 知识库接口
+
+| 方法 | 端点 | 描述 |
+|-----|------|------|
+| POST | `/api/v1/knowledge/documents` | 添加文档到知识库 |
+| GET | `/api/v1/knowledge/documents` | 获取文档列表 |
+| DELETE | `/api/v1/knowledge/documents` | 清空知识库 |
+| GET | `/api/v1/knowledge/status` | 获取知识库状态 |
+
+### RAG 问答
+
+发送消息时设置 `use_knowledge: true` 即可启用知识库问答：
+```json
+{
+  "content": "Python 是谁发明的？",
+  "use_knowledge": true
+}
+```
+
 详细文档请访问 `/docs` 查看 Swagger UI。
 
+## 🔧 核心设计
+
+### Clean Architecture
+
+采用整洁架构，依赖方向从外到内：
+
+- **领域层**：定义业务实体和接口（Ports）
+- **应用层**：编排业务逻辑，不依赖具体技术
+- **基础设施层**：实现接口（Adapters）、对接外部服务
+- **接口层**：暴露 API、CLI、Web 等入口
+
+### RAG 流程
+```
+离线建库：文档 → 切分 → Embedding → 向量数据库
+在线问答：问题 → Embedding → 检索 Top-K → 拼接 Prompt → LLM 生成
+```
+
+
+
 ## 🗺️ 未来计划
-- [] RAG 文档问答：上传文档，基于文档内容回答
-- [] 多模型支持：添加 OpenAI、Claude 等模型
-- [] 持久化存储：支持 Redis/数据库存储对话
-- [] 用户系统：多用户支持
-- [] Docker 部署：容器化部署方案
+- [x] RAG 文档问答：上传文档，基于文档内容回答
+- [ ] 多模型支持：添加 OpenAI、Claude 等模型
+- [ ] 持久化存储：支持 Redis/PostgreSQL数据库存储对话
+- [ ] 用户认证系统：多用户支持
+- [ ] Docker 部署：容器化部署方案
 
 ## 📄 许可证
 

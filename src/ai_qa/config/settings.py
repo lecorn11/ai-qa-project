@@ -16,6 +16,10 @@ class Settings(BaseSettings):
     app_env: str = Field(default="development", alias="APP_ENV")
     debug: bool = Field(default= True, alias= "DEBUG")
 
+    knowledge_persist_dir: str = Field(
+        default="./data/knowledge",
+        alias="KNOWLEDGE_PERSIST_DIR"
+    )
     # Pydantic V2 配置
     model_config = SettingsConfigDict(
         env_file = ".env",

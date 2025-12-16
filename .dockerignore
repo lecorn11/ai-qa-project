@@ -22,3 +22,6 @@ venv/
 # 其他
 *.md
 tests/
+
+# 知识库数据
+data/

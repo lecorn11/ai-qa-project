@@ -1,6 +1,7 @@
 from functools import lru_cache
 
 from ai_qa.application.knowledge_service import KnowledgeService
+from ai_qa.config import settings
 from ai_qa.config.settings import Settings
 from ai_qa.infrastructure.embedding.dashscope_embedding import DashScopeEmbeddingAdapter
 from ai_qa.infrastructure.llm.qwen_adapter import QwenAdapter
@@ -42,8 +43,12 @@ def get_embedding() -> EmbeddingPort:
 @lru_cache
 def get_vector_store() -> VectorStorePort:
     """获取向量存储实例（单例）"""
-    embdeding = get_embedding()
-    return FaissVectorStore(embdeding)
+    embedding = get_embedding()
+    settings = get_settings()
+    return FaissVectorStore(
+        embedding = embedding,
+        persist_directory=settings.knowledge_persist_dir
+    )
 
 def get_chat_service() -> ChatService:
     """获取聊天服务"""

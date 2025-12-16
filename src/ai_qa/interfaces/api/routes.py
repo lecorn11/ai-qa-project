@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import StreamingResponse
 
+from ai_qa.domain.entities import MessageRole
 from ai_qa.application.knowledge_service import KnowledgeService
 from ai_qa.config.settings import settings
 from ai_qa.infrastructure.llm.qwen_adapter import QwenAdapter
@@ -32,11 +33,11 @@ async def send_message(
 
     if request.use_knowledge and knowledge_service.chunk_count > 0:
         # 使用知识库回答
-        response_content = knowledge_service.query(request.content)
+        response_content = knowledge_service.query(request.conten,session_id=session_id)
 
         # 同时保存到对话历史
         conversation = memory.get_conversation(session_id)
-        from ai_qa.domain.entities import MessageRole
+
         conversation.add_message(MessageRole.USER, request.content)
         conversation.add_message(MessageRole.ASSISTANT, response_content)
         memory.save_conversation(conversation)
@@ -66,8 +67,14 @@ async def send_message_stream(
     # 流式暂时只支持普通对话，知识库对话后续可以扩展
     if request.use_knowledge:
         # 知识库模式用非流式返回
-        response_content = knowledge_service.query(request.content)
+        response_content = knowledge_service.query(request.content,session_id=session_id)
         
+        # 同时保存到对话历史
+        conversation = memory.get_conversation(session_id)
+        conversation.add_message(MessageRole.USER, request.content)
+        conversation.add_message(MessageRole.ASSISTANT, response_content)
+        memory.save_conversation(conversation)
+
         def generate():
             yield f"data: {response_content}\n\n"
             yield "data: [DONE]\n\n"

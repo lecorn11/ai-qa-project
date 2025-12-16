@@ -33,10 +33,6 @@ async def add_document(
     # 如果知识库还没有创建，则先创建
     if knowledge_serivce._knowledge_base is None:
         knowledge_serivce.create_knowledge_base(name="默认知识库")
-    
-    import os, dashscope
-    print("DASHSCOPE_API_BASE =", os.getenv("DASHSCOPE_API_BASE"))
-    print("dashscope.base_http_api_url =", getattr(dashscope, "base_http_api_url", None))
 
     # 添加文档
     chunk_count = knowledge_serivce.add_text(

@@ -1,7 +1,7 @@
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from ai_qa.domain.entities import DocumentChunk, KnowledgeBase
-from ai_qa.domain.ports import VectorStorePort, LLMPort
+from ai_qa.domain.entities import DocumentChunk, KnowledgeBase, MessageRole, Message
+from ai_qa.domain.ports import VectorStorePort, LLMPort, ConversationMemoryPort
 
 class KnowledgeService:
     """知识库服务"""
@@ -10,11 +10,13 @@ class KnowledgeService:
             self,
             vector_store: VectorStorePort,
             llm: LLMPort,
+            memory: ConversationMemoryPort,
             chunk_size: int = 500,
             chunk_overlap: int = 50
     ):
         self._vector_store = vector_store
         self._llm = llm
+        self._memory = memory
 
         # 文本切分器
         self._splitter = RecursiveCharacterTextSplitter(
@@ -78,27 +80,72 @@ class KnowledgeService:
         metadata = {"source": file_path}
         return self.add_text(text,metadata)
     
-    def query(self, question: str, top_k: int = 3) -> str:
+    def _rewrite_query(self, session_id: str, question: str) -> str:
+        """根据对话历史改写查询（解决指代问题）"""
+
+        # 获取历史对话
+        conversation = self._memory.get_conversation(session_id)
+       
+        # 如果没有历史对话，则直接返回原问题
+        if not conversation.messages:
+            return question
+
+        # 构建历史对话文本
+        history_text = ""
+        for msg in conversation.messages[-6:]:
+            role = "用户" if msg.role == MessageRole.USER else "AI"
+            history_text += f"{role}: {msg.content}\n"
+        
+        # 构建改写提示词
+        rewrtie_prompt = f""" 你的任务是：将用户的问题改写成一个独立完整的问题。
+
+        规则：
+        1. 如果问题中有代替（它、他、这个等），根据对话历史替换成具体指代
+        2. 如果问题已经完整清晰，直接返回原问题
+        2. 只输出改写后的问题，不要任何解释
+
+        对话历史：
+        {history_text}
+
+        当前问题：
+        {question}
+
+        改写后的问题："""
+
+        # 调用 LLM 进行改写
+        messages = [Message(role=MessageRole.USER, content=rewrtie_prompt)]
+        rewritten = self._llm.chat(messages)
+
+        return rewritten.strip()
+
+    def query(self, question: str, session_id: str = None, top_k: int = 3) -> str:
         """基于知识库回答问题(RAG)
         
         Args:
             question: 用户问题
+            session_id: 会话 ID
             top_k: 检索的文档块数量
 
         Returns:
             AI 的回答
         """
-
-        # 1. 检索相关文档
-        relevtant_chunks = self._vector_store.search(question,top_k)
+        # 1. 查询改写（如果有 session_id）
+        search_query = question
+        if session_id:
+            search_query = self._rewrite_query(session_id,question)
+            if search_query != question:
+                print(f"[查询改写]{question} -> {search_query}")
+        
+        # 2. 检索相关文档
+        relevtant_chunks = self._vector_store.search(search_query, top_k)
 
         if not relevtant_chunks:
             return "知识库中没有找到相关内容"
         
-        # 2. 构建上下文
+        # 3. 构建上下文
         context = "\n\n".join([chunk.content for chunk in relevtant_chunks])
 
-        # 3. 构建 RAG Prompt
+        # 4. 构建 RAG Prompt
         from ai_qa.domain.entities import Message, MessageRole
 
         system_prompt = """
@@ -118,7 +165,7 @@ class KnowledgeService:
         
         messages = [Message(role=MessageRole.USER, content=user_message)]
 
-        # 4. 调用 LLM 生成回答
+        # 5. 调用 LLM 生成回答
         response = self._llm.chat(messages, system_prompt=system_prompt)
 
         return response

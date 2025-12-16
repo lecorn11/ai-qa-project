@@ -62,5 +62,6 @@ def get_knowledge_service() -> KnowledgeService:
     """获取知识库服务（单例）"""
     return KnowledgeService(
         vector_store=get_vector_store(),
-        llm=get_llm()
+        llm=get_llm(),
+        memory=get_memory()
     )

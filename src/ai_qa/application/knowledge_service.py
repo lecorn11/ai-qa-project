@@ -1,7 +1,3 @@
-from email import message
-from os import read, system
-from tabnanny import verbose
-from tkinter import N
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from ai_qa.domain.entities import DocumentChunk, KnowledgeBase

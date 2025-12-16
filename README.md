@@ -130,6 +130,32 @@ python run_api.py
 - Web 界面：http://localhost:8000
 - API 文档：http://localhost:8000/docs
 
+## 🐳 Docker 部署
+
+### 使用 docker-compose（推荐）
+```bash
+# 构建并启动
+docker-compose up -d --build
+
+# 查看状态
+docker-compose ps
+
+# 查看日志
+docker-compose logs -f
+
+# 停止服务
+docker-compose down
+```
+
+### 手动构建运行
+```bash
+# 构建镜像
+docker build -t ai-qa-app .
+
+# 运行容器
+docker run -p 8000:8000 --env-file .env ai-qa-app
+```
+
 ## 📖 API 文档
 ### 对话接口
 

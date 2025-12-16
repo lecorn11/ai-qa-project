@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# 环境
+.env
+.venv/
+venv/
+
+# IDE
+.idea/
+.vscode/
+
+# Git
+.git/
+.gitignore
+
+# 其他
+*.md
+tests/

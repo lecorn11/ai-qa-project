@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import StreamingResponse
+import json
 
 from ai_qa.domain.entities import MessageRole
 from ai_qa.application.knowledge_service import KnowledgeService
@@ -65,26 +66,33 @@ async def send_message_stream(
 ):
     """发送消息并获取 AI 回复（流式）"""
     # 流式暂时只支持普通对话，知识库对话后续可以扩展
-    if request.use_knowledge:
-        # 知识库模式用非流式返回
-        response_content = knowledge_service.query(request.content,session_id=session_id)
-        
-        # 同时保存到对话历史
-        conversation = memory.get_conversation(session_id)
-        conversation.add_message(MessageRole.USER, request.content)
-        conversation.add_message(MessageRole.ASSISTANT, response_content)
-        memory.save_conversation(conversation)
+    if request.use_knowledge and knowledge_service.chunk_count > 0:
 
         def generate():
-            yield f"data: {response_content}\n\n"
+            full_response = ""
+
+            # 知识库模式用非流式返回
+            for chunk in knowledge_service.query_stream(
+                request.content,
+                session_id=session_id
+            ):
+                full_response += chunk
+                yield f"data: {json.dumps(chunk)}\n\n"
+
+            # 同时保存到对话历史
+            conversation = memory.get_conversation(session_id)
+            conversation.add_message(MessageRole.USER, request.content)
+            conversation.add_message(MessageRole.ASSISTANT, full_response)
+            memory.save_conversation(conversation)
+
             yield "data: [DONE]\n\n"
-        
+
         return StreamingResponse(generate(), media_type="text/event-stream")
  
     def generate():
         for chunk in chat_service.chat_stream(session_id,request.content):
             # SSE 格式： data:{内容}\n\n
-            yield f"data: {chunk}\n\n" 
+            yield f"data: {json.dumps(chunk)}\n\n" 
         yield "data: [DONE]\n\n"
 
     return StreamingResponse(

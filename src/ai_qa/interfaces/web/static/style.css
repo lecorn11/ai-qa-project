@@ -242,6 +242,77 @@ input:checked + .slider:before {
     background: #cc0000;
 }
 
+/* 文件上传区域 */
+.file-upload {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.file-btn {
+    padding: 10px 16px;
+    background: #f0f0f0;
+    border: 1px dashed #999;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.file-btn:hover {
+    background: #e0e0e0;
+}
+
+.file-name {
+    font-size: 13px;
+    color: #666;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#uploadFileBtn {
+    padding: 8px 16px;
+    background: #28a745;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+#uploadFileBtn:hover {
+    background: #218838;
+}
+
+.divider {
+    text-align: center;
+    color: #999;
+    font-size: 12px;
+    margin: 12px 0;
+    position: relative;
+}
+
+.divider::before,
+.divider::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    width: 40%;
+    height: 1px;
+    background: #ddd;
+}
+
+.divider::before {
+    left: 0;
+}
+
+.divider::after {
+    right: 0;
+}
+
 /* 输入区域 */
 .input-container {
     padding: 16px 20px;

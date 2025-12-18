@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from datetime import datetime
 
 from ai_qa.application.knowledge_service import KnowledgeService
+from ai_qa.infrastructure.document.pdf_reader import extract_text_from_pdf
 from ai_qa.interfaces.api.dependecnies import get_knowledge_service
 from ai_qa.models.schemas import AddDocumentRequest, KnowledgeBaseStatus, SuccessResponse
 
@@ -68,4 +69,62 @@ async def clear_documents(
     _documents.clear()
 
     return SuccessResponse(messaage="知识库已清空")
+
+@router.post("/documents/upload", response_model=SuccessResponse)
+async def upload_document(
+    file: UploadFile = File(...),
+    knowledge_service: KnowledgeService = Depends(get_knowledge_service)
+):
+    """上传文件到知识库（支持 PDF、TXT）"""
+
+    # 检查文件类型
+    filename = file.filename.lower()
+    if not (filename.endswith(".pdf") or filename.endswith(".txt")):
+        raise HTTPException(
+            status_code=400,
+            detail="只支持 PDF 和 TXT 文件"
+        )
+    
+    # 读取文件内容
+    content = await file.read()
+
+    # 根据类型提取文本
+    if filename.endswith(".pdf"):
+        try:
+            text = extract_text_from_pdf(content)
+        except Exception as e:
+            raise HTTPException(
+                status_code=400,
+                detail= f"PDF 解析失败：{str(e)}"
+            )
+    else:
+        # TXT 文件
+        text = content.decode("utf-8")
+    
+    if not text.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="文件内容为空"
+        )
+    
+    # 确保知识库已创建
+    if knowledge_service._knowledge_base is None:
+        knowledge_service.create_knowledge_base(name="默认知识库")
+    
+    # 添加到知识库
+    chunk_count = knowledge_service.add_text(
+        text=text,
+        metadata={"title": file.filename, "type":"file"}
+    )
+    
+    _documents.append({
+        "title": file.filename,
+        "type": "pdf" if filename.endswith(".pdf") else "txt",
+        "chunk_count": chunk_count,
+        "added_at": datetime.now().isoformat()
+    })
+
+    return SuccessResponse(
+        messaage=f"文件 '{file.filename}' 已添加，共切分为{chunk_count} 个文档块"
+    )
 

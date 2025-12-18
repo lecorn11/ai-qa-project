@@ -9,6 +9,18 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('useKnowledge').addEventListener('change', (e) => {
         updateToggleButton(e.target.checked);
     });
+
+    // 文件选择监听
+    document.getElementById('fileInput').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            document.getElementById('fileName').textContent = file.name;
+            document.getElementById('uploadFileBtn').style.display = 'inline-block';
+        } else {
+            document.getElementById('fileName').textContent = '';
+            document.getElementById('uploadFileBtn').style.display = 'none';
+        }
+    });
 });
 
 // 切换知识库面板显示
@@ -82,6 +94,43 @@ async function uploadDocument() {
         alert('上传失败，请重试');
     }
 }
+// 上传文件
+async function uploadFile() {
+    const fileInput = document.getElementById('fileInput');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        alert('请先选择文件');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+        const response = await fetch(`${API_BASE}/knowledge/documents/upload`, {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            alert(data.message);
+            // 清空选择
+            fileInput.value = '';
+            document.getElementById('fileName').textContent = '';
+            document.getElementById('uploadFileBtn').style.display = 'none';
+            // 刷新状态
+            updateKnowledgeStatus();
+        } else {
+            alert(data.detail || '上传失败');
+        }
+    } catch (error) {
+        console.error('上传失败:', error);
+        alert('上传失败，请重试');
+    }
+}
 
 // 清空知识库
 async function clearKnowledge() {
@@ -148,14 +197,22 @@ async function sendMessage() {
             if (done) break;
             
             const chunk = decoder.decode(value);
-            const lines = chunk.split('\n');
+            const lines = chunk.split('\n\n');
             
             for (const line of lines) {
                 if (line.startsWith('data: ')) {
-                    const data = line.slice(6);
-                    if (data === '[DONE]') continue;
+                    const rawData = line.slice(6);
+                    debugger
+                    if (rawData === '[DONE]') continue;
                     
-                    assistantMessage += data;
+                    // 解析 JSON 数据
+                    try {
+                        const data = JSON.parse(rawData);
+                        assistantMessage += data;
+                    } catch(e){
+                        // 兼容非 JSON 格式
+                        assistantMessage += rawData;
+                    }
                     
                     if (!messageElement) {
                         messageElement = appendMessage('assistant', assistantMessage);

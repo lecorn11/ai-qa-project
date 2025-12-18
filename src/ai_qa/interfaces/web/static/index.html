@@ -44,11 +44,27 @@
                         <span class="slider"></span>
                     </label>
                 </div>
+
+                <!-- 文件上传 -->
                 <div class="upload-section">
+                    <div class="file-upload">
+                        <input type="file" id="fileInput" accept=".pdf,.txt" style="display: none;">
+                        <button class="file-btn" onclick="document.getElementById('fileInput').click()">
+                            📄 选择文件 (PDF/TXT)
+                        </button>
+                        <span id="fileName" class="file-name"></span>
+                        <button id="uploadFileBtn" onclick="uploadFile()" style="display: none;">
+                            📤 上传
+                        </button>
+                    </div>
+                    
+                    <div class="divider">或粘贴文本</div>
+                    
                     <textarea id="docContent" placeholder="粘贴文档内容..."></textarea>
                     <input type="text" id="docTitle" placeholder="文档标题（可选）">
-                    <button onclick="uploadDocument()">📤 添加到知识库</button>
-                </div>
+                    <button onclick="uploadDocument()">📤 添加文本</button>
+                </div>  
+
                 <button class="clear-btn" onclick="clearKnowledge()">🗑️ 清空知识库</button>
             </div>
         </div>

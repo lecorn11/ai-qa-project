@@ -169,6 +169,58 @@ class KnowledgeService:
         response = self._llm.chat(messages, system_prompt=system_prompt)
 
         return response
+    
+    def query_stream(self, question: str, session_id: str = None, top_k: int = 3) -> str:
+        """基于知识库回答问题(RAG)
+        
+        Args:
+            question: 用户问题
+            session_id: 会话 ID
+            top_k: 检索的文档块数量
+
+        Returns:
+            AI 的回答
+        """
+        # 1. 查询改写（如果有 session_id）
+        search_query = question
+        if session_id:
+            search_query = self._rewrite_query(session_id,question)
+            if search_query != question:
+                print(f"[查询改写]{question} -> {search_query}")
+        
+        # 2. 检索相关文档
+        relevtant_chunks = self._vector_store.search(search_query, top_k)
+
+        if not relevtant_chunks:
+            return "知识库中没有找到相关内容"
+        
+        # 3. 构建上下文
+        context = "\n\n".join([chunk.content for chunk in relevtant_chunks])
+
+        # 4. 构建 RAG Prompt
+        from ai_qa.domain.entities import Message, MessageRole
+
+        system_prompt = """
+            你是一个知识库问答助手。请根据以下提供的参考内容回答用户的问题。
+            如果参考内容中没有相关信息，请诚实地说"根据现有资料无法回答这个问题"。
+            回答时请简洁明了，直接回答问题。
+            """
+        
+        user_message = f"""
+            参考内容：
+            {context}
+
+            用户问题：{question}
+
+            请根据参考内容回答问题：
+            """
+        
+        messages = [Message(role=MessageRole.USER, content=user_message)]
+
+        # 5. 调用 LLM 生成回答
+
+        for chunk in self._llm.chat_stream(messages, system_prompt=system_prompt):
+            yield chunk
 
     def get_relevant_chunks(self, question: str, top_k: int = 3) -> list[DocumentChunk]:
         """获取相关文档块（用于调试或展示来源）"""

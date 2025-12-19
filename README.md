@@ -4,6 +4,8 @@
 ## ✨ 功能特性
 - **智能对话**：接入通义千问大模型，支持多轮对话，上下文记忆
 - **RAG 知识库**：上传文档构建知识库，基于文档内容精准回答
+- **文件上传**：支持 PDF、TXT 文件上传，自动解析入库
+- **查询改写**：支持自动解决对话中的指代问题（如“它是什么“）
 - **流式响应**：AI 回复逐字显示，打字机效果体验
 - **Clean Architecture**：清晰的分层架构，易于扩展和维护
 - **可拔插设计**：轻松切换不同的 LLM 提供商
@@ -16,8 +18,10 @@
 |**LLM**| 通义千问（Qwen） |
 |**Embedding**| DashScope text-embedding-v3 |
 |**向量数据库**| FAISS |
+|**文档解析**| pypdf |
 |**前端**|HTML + CSS + JavaScript|
 |**配置管理**| Pydantic Settings |
+|**容器化**| Docker + docker-compose|
 
 ## 🏗️ 系统架构
 ```
@@ -30,7 +34,7 @@
 │                    Application 应用层                        │
 │  ┌─────────────────────┐  ┌─────────────────────────────┐   │
 │  │    ChatService      │  │    KnowledgeService         │   │
-│  │    (对话服务)        │  │    (知识库服务)              │   │
+│  │    (对话服务)        │  │    (知识库服务 + 查询改写)     │   │
 │  └─────────────────────┘  └─────────────────────────────┘   │
 ├─────────────────────────────────────────────────────────────┤
 │                      Domain 领域层                           │
@@ -59,7 +63,7 @@ ai-qa-project/
 │   │
 │   ├── application/            # 应用层：业务逻辑编排
 │   │   └── chat_service.py     # 聊天服务
-│   │   └── knowledge_service.py # 知识库服务（RAG）
+│   │   └── knowledge_service.py # 知识库服务（RAG + 查询改写）
 │   │
 │   ├── infrastructure/         # 基础设施层：外部服务实现
 │   │   ├── llm/
@@ -67,7 +71,9 @@ ai-qa-project/
 │   │   ├── embedding/
 │   │   │   └── dashscope_embedding.py # 通义千问嵌入模型适配器
 │   │   ├── vectorstore/
-│   │   │   └── faiss_store.py  # Meta 向量数据库
+│   │   │   └── faiss_store.py  # Meta 向量数据库（支持持久化）
+│   │   ├── document/
+│   │   │   └── pdf_reader.py   # PDF 解析
 │   │   └── memory/
 │   │       └── in_memory.py    # 内存存储
 │   │
@@ -82,6 +88,9 @@ ai-qa-project/
 │   └── config/                 # 配置管理
 │       └── settings.py
 │
+├── data/                       # 知识库持久化数据（自动生成）
+├── Dockerfile
+├── docker-compose.yml
 ├── .env.example                # 环境变量示例
 ├── pyproject.toml              # 项目配置
 ├── requirements.txt            # 依赖列表
@@ -118,6 +127,7 @@ LLM_API_KEY=your-api-key-here
 LLM_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
 LLM_MODEL_NAME=qwen-turbo
 EMBEDDING_MODEL_NAME=text-embedding-v3
+KNOWLEDGE_PERSIST_DIR=./data/knowledge
 ```
 
 ### 5. 启动服务
@@ -171,7 +181,8 @@ docker run -p 8000:8000 --env-file .env ai-qa-app
 
 | 方法 | 端点 | 描述 |
 |-----|------|------|
-| POST | `/api/v1/knowledge/documents` | 添加文档到知识库 |
+| POST | `/api/v1/knowledge/documents` | 添加文本到知识库 |
+| POST | `/api/v1/knowledge/documents/upload` | 上传文件（PDF/TXT） |
 | GET | `/api/v1/knowledge/documents` | 获取文档列表 |
 | DELETE | `/api/v1/knowledge/documents` | 清空知识库 |
 | GET | `/api/v1/knowledge/status` | 获取知识库状态 |
@@ -202,17 +213,17 @@ docker run -p 8000:8000 --env-file .env ai-qa-app
 ### RAG 流程
 ```
 离线建库：文档 → 切分 → Embedding → 向量数据库
-在线问答：问题 → Embedding → 检索 Top-K → 拼接 Prompt → LLM 生成
+在线问答：问题 → 查询改写（解决指代） → Embedding → 检索 Top-K → 拼接 Prompt → LLM 生成
 ```
 
 
-
 ## 🗺️ 未来计划
-- [x] RAG 文档问答：上传文档，基于文档内容回答
-- [ ] 多模型支持：添加 OpenAI、Claude 等模型
-- [ ] 持久化存储：支持 Redis/PostgreSQL数据库存储对话
+- [x] RAG 文档问答：上传 PDF 文档，基于文档内容回答
+- [x] Docker 部署：容器化部署方案
 - [ ] 用户认证系统：多用户支持
-- [ ] Docker 部署：容器化部署方案
+- [ ] 持久化存储：支持 Redis/PostgreSQL数据库存储对话
+- [ ] 多模型支持：添加 OpenAI、Claude 等模型
+
 
 ## 📄 许可证
 

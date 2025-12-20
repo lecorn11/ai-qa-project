@@ -33,3 +33,25 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+  # PostgreSQL 数据库
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: ai-qa-postgres
+    environment: 
+      POSTGRES_USER: ai_qa_user
+      POSTGRES_PASSWORD: ai_qa_password
+      POSTGRES_DB: ai_qa_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ai_qa_user -d ai_qa_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:

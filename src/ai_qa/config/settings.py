@@ -16,10 +16,24 @@ class Settings(BaseSettings):
     app_env: str = Field(default="development", alias="APP_ENV")
     debug: bool = Field(default= True, alias= "DEBUG")
 
+    # 知识库持久化目录
     knowledge_persist_dir: str = Field(
         default="./data/knowledge",
         alias="KNOWLEDGE_PERSIST_DIR"
     )
+
+    # 文件上传路径
+    upload_dir: str = Field(
+        default="./data/uploads",
+        alias="UPLOAD_DIR"
+    )
+
+    # 数据库配置
+    database_url: str = Field(
+        default="postgresql://ai_qa_user:ai_qa_password@localhost:5432/ai_qa_db",
+        alias="DATABASE_URL"
+    )
+
     # Pydantic V2 配置
     model_config = SettingsConfigDict(
         env_file = ".env",

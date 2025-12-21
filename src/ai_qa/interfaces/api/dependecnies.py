@@ -1,15 +1,20 @@
 from functools import lru_cache
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy.orm import Session
 
 from ai_qa.application.knowledge_service import KnowledgeService
-from ai_qa.config import settings
+from ai_qa.application.user_service import UserService
 from ai_qa.config.settings import Settings
+from ai_qa.infrastructure.auth.security import verify_token
+from ai_qa.infrastructure.database.connection import get_db
+from ai_qa.infrastructure.database.models import User
 from ai_qa.infrastructure.embedding.dashscope_embedding import DashScopeEmbeddingAdapter
 from ai_qa.infrastructure.llm.qwen_adapter import QwenAdapter
 from ai_qa.infrastructure.memory.in_memory import InMemoryConversationMemory
 from ai_qa.application.chat_service import ChatService
 from ai_qa.domain.ports import EmbeddingPort, LLMPort, ConversationMemoryPort, VectorStorePort
 from ai_qa.infrastructure.vectorstore.faiss_store import FaissVectorStore
-from ai_qa.interfaces import api
 
 @lru_cache
 def get_settings() -> Settings:
@@ -65,3 +70,61 @@ def get_knowledge_service() -> KnowledgeService:
         llm=get_llm(),
         memory=get_memory()
     )
+
+# ====== 用户认证 ======
+
+security = HTTPBearer(auto_error=False)
+
+def get_user_service(db: Session = Depends(get_db)) -> UserService:
+    """获取用户服务"""
+    return UserService(db)
+
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db)
+) -> User:
+    """获取当前登录用户（必须登录）"""
+    if not credentials:
+        raise HTTPException(
+            status_code = status.HTTP_401_UNAUTHORIZED,
+            detail = "未提供认证信息",
+        )
+    
+    payload = verify_token(credentials.credentials)
+    if not payload:
+        raise HTTPException(
+            status_code = status.HTTP_401_UNAUTHORIZED,
+            detail = "Token 无效或已过期",
+        )
+    
+    user_id = payload.get("user_id")
+    user = db.query(User).filter(User.id == user_id).first()
+
+    if not user:
+        raise HTTPException(
+            status_code = status.HTTP_401_UNAUTHORIZED,
+            detail = "用户不存在",
+        )
+    
+    if user.status != 1:
+        raise HTTPException(
+            status_code = status.HTTP_403_FORBIDDEN,
+            detail = "用户账号已被禁用",
+        )
+    
+    return user
+
+def get_current_user_optional(
+    creaentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db)
+) -> User | None:
+    """获取当前用户（可选，未登录返回 None）"""
+    if not creaentials:
+        return None
+    
+    payload = verify_token(creaentials.credentials)
+    if not payload:
+        return None
+    
+    user_id = payload.get("user_id")
+    return db.query(User).filter(User.id == user_id).first()

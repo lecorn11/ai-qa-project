@@ -5,6 +5,8 @@ from fastapi.responses import FileResponse
 
 from ai_qa.interfaces.api.routes import router
 from ai_qa.interfaces.api.knowledge_routes import router as knowledge_router
+from ai_qa.interfaces.api.auth_routes import router as auth_router
+
 
 # 创建 FasrAPI 应用
 app = FastAPI(
@@ -16,6 +18,7 @@ app = FastAPI(
 # 注册 API 路由
 app.include_router(router, prefix="/api/v1")
 app.include_router(knowledge_router, prefix="/api/v1")
+app.include_router(auth_router, prefix="/api/v1")
 
 # 静态文件目录
 STATIC_DIR = Path(__file__).parent.parent / "web" / "static"

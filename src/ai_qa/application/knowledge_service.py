@@ -226,10 +226,10 @@ class KnowledgeService:
         """获取相关文档块（用于调试或展示来源）"""
         return self._vector_store.search(question, top_k=top_k)
 
-    @property
+    # @property
     def chunk_count(self) -> int:
         """返回知识库中的文档块数量"""
-        return self._vector_store.count
+        return self._vector_store.count()
 
 
 

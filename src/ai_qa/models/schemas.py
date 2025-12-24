@@ -1,3 +1,4 @@
+from turtle import update
 from pydantic import BaseModel
 from datetime import datetime
 
@@ -28,19 +29,21 @@ class MessageResponse(BaseModel):
 
 class ConversationResponse(BaseModel):
     """会话响应"""
-    sessiong_id: str
-    messages: list[MessageResponse] = []
-    created_at: datetime
+    sessiong_id: int
+    # messages: list[MessageResponse] = []
+    title: str
+    created_at: datetime | None = None
+    update_at: datetime | None = None
 
-class ConversationListItem(BaseModel):
-    """会话列表项"""
-    session_id: str
-    create_at: datetime
-    message_count: int
+# class ConversationListItem(BaseModel):
+#     """会话列表项"""
+#     session_id: str
+#     create_at: datetime
+#     message_count: int
 
 class ConversationListResponse(BaseModel):
     """会话列表响应"""
-    conversations: list[ConversationListItem]
+    conversations: list[ConversationResponse]
 
 class KnowledgeBaseStatus(BaseModel):
     """知识库状态"""

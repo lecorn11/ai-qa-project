@@ -11,20 +11,27 @@ class InMemoryConversationMemory(ConversationMemoryPort):
     def __init__(self):
         self._store: dict[str, Conversation] = {}
     
-    def get_conversation(self, session_id: str) -> Conversation:
+    def get_conversation(self, session_id: str, user_id: int = None) -> Conversation:
         """获取对话，不存在则创建"""
         if session_id not in self._store:
-            self._store[session_id] = Conversation(session_id=session_id)
+            conversation = Conversation(session_id=session_id)
+            conversation.user_id = user_id
+            self._store[session_id] = conversation
         return self._store[session_id]
         
     def save_conversation(self, conversation: Conversation) -> None:
         """保存对话"""
         self._store[conversation.session_id] = conversation
 
-    def clear_conversation(self, session_id: str) -> None:
-        """清楚对话"""
+    def list_conversations(self, user_id: int) -> list[Conversation]:
+        return list(self._store.values())
+
+    def clear_conversation(self, session_id: str) -> bool:
+        """清除对话"""
         if session_id in self._store:
             del self._store[session_id]
+            return True
+        return False
                 
 
 

@@ -1,7 +1,10 @@
 from dataclasses import dataclass, field
 from enum import Enum
+from turtle import update
 from typing import Optional
 from datetime import datetime
+
+from ai_qa.infrastructure import document
 
 class MessageRole(Enum):
     """消息角色枚举"""
@@ -31,8 +34,11 @@ class Message:
 class Conversation:
     """对话实体"""
     session_id: str
-    messages: list[Message] = None
-    created_at: datetime = None
+    messages: list[Message] = field(default_factory=list)
+    user_id: Optional[int] = None
+    title: Optional[str] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     def __post_init__(self):
         if self.messages is None:
@@ -55,7 +61,10 @@ class DocumentChunk:
     """文档实体块"""
     content: str
     metadata: dict = field(default_factory=dict)
+    embedding: Optional[list[float]] = None
+    document_id: Optional[int] = None
     chunk_id: str = None
+
 
     def __post_init__(self):
         if self.chunk_id is None:

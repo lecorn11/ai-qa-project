@@ -33,7 +33,7 @@ class FaissVectorStore(VectorStorePort):
             # 存储原始文档块（FAISS 只存向量，我们需要额外存储文本）
             self._chunks : list[DocumentChunk] = []
 
-    def add_documents(self, chunks: list[DocumentChunk]) -> None:
+    def add_documents(self, chunks: list[DocumentChunk], knowledge_base_id: int = None) -> None:
         """添加文档块到向量存储"""
         if not chunks:
             return 
@@ -56,7 +56,7 @@ class FaissVectorStore(VectorStorePort):
         # 自动保存到本地磁盘
         self._save()
 
-    def search(self, query, top_k = 3):
+    def search(self, query, top_k = 3, knowledge_base_id: int = None):
         """搜索相关文档块"""
         if self._index.ntotal == 0:
             return []
@@ -76,7 +76,7 @@ class FaissVectorStore(VectorStorePort):
         
         return results
 
-    def clear(self):
+    def clear(self, knowledge_base_id: int = None):
         """清空向量存储"""
         self._index = faiss.IndexFlatL2(self._dimension)
         self._chunks = []
@@ -92,7 +92,7 @@ class FaissVectorStore(VectorStorePort):
                 os.remove(chunks_path)
             
     @property
-    def count(self) -> int:
+    def count(self, knowledge_base_id: int = None) -> int:
         """返回存储的文档块数量"""
         return len(self._chunks)
     

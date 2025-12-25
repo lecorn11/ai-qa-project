@@ -138,10 +138,10 @@ async def clear_documents(
     knowledge_service._vector_store.clear()
     _documents.clear()
 
-    return SuccessResponse(messaage="知识库已清空")
+    return SuccessResponse(message="知识库已清空")
 
 
-@router.post("/documents",response_model=SuccessResponse)
+@router.post("/knowledge-bases/{kb_id}/documents/text", response_model=SuccessResponse)
 async def add_document(
     kb_id: int,
     request: AddDocumentRequest,
@@ -155,7 +155,7 @@ async def add_document(
     kb = kb_service.get_by_id(kb_id, current_user.id)
     if not kb:
         raise HTTPException(status_code=404, detail="知识库不存在")
-    
+
     # 添加到知识库
     chunk_count = knowledge_service.add_document(
         knowledge_base_id=kb_id,
@@ -181,10 +181,10 @@ async def add_document(
     #     "added_at": datetime.now()
     # })
 
-    return SuccessResponse(messaage=f"文档已添加。共切分为 {chunk_count} 个文档块")
+    return SuccessResponse(message=f"文档已添加。共切分为 {chunk_count} 个文档块")
 
 
-@router.post("/{kb_id}/documents/upload", response_model=SuccessResponse)
+@router.post("/knowledge-bases/{kb_id}/documents/upload", response_model=SuccessResponse)
 async def upload_document(
     kb_id: int,
     current_user: User = Depends(get_current_user),
@@ -256,6 +256,6 @@ async def upload_document(
     )
 
     return SuccessResponse(
-        messaage=f"文件 '{file.filename}' 已添加，共切分为{chunk_count} 个文档块"
+        message=f"文件 '{file.filename}' 已添加，共切分为{chunk_count} 个文档块"
     )
 

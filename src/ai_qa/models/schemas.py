@@ -8,6 +8,7 @@ from datetime import datetime
 class SendMessageRequest(BaseModel):
     """发送消息请求模型"""
     content: str
+    knowledge_base_id: int | None = None
     use_knowledge: bool = False
 
 class CreateConversationRequest(BaseModel):
@@ -37,11 +38,11 @@ class MessageResponse(BaseModel):
 
 class ConversationResponse(BaseModel):
     """会话响应"""
-    sessiong_id: int
+    session_id: str
     # messages: list[MessageResponse] = []
     title: str
     created_at: datetime | None = None
-    update_at: datetime | None = None
+    updated_at: datetime | None = None
 
 # class ConversationListItem(BaseModel):
 #     """会话列表项"""

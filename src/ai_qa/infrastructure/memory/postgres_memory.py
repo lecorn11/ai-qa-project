@@ -73,7 +73,7 @@ class PostgresConversationMemory(ConversationMemoryPort):
             )
             self._db.add(db_conversation)
             self._db.flush()  # 写入数据库（没有提交事务）获取自增 ID
-            conversation.session_id = db_conversation.id # TODO：这里需要替换 ID？
+            conversation.session_id = str(db_conversation.id) # 确保返回字符串类型
         
         # 更新时间
         db_conversation.updated_at = datetime.now()
@@ -104,7 +104,7 @@ class PostgresConversationMemory(ConversationMemoryPort):
 
         conversations = [
             Conversation(
-                session_id=db_conv.id,
+                session_id=str(db_conv.id),
                 user_id=db_conv.user_id,
                 title=db_conv.title,
                 created_at=db_conv.created_at,

@@ -217,7 +217,7 @@ class KnowledgeService:
 
         return response
     
-    def query_stream(self, question: str, knowledge_base_id: int, session_id: str = None, top_k: int = 3) -> str:
+    def query_stream(self, question: str, knowledge_base_id: int, session_id: str = None, user_id :int = None, top_k: int = 3) -> str:
         """基于知识库回答问题(RAG)
         
         Args:

@@ -7,46 +7,171 @@
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <div class="app-container">
+    <!-- ========== 登录页面 ========== -->
+    <div class="auth-container" id="authContainer">
+        <div class="auth-box">
+            <h1>AI 智能问答</h1>
+            <p class="auth-subtitle">基于 LangChain + RAG</p>
+            
+            <!-- 登录表单 -->
+            <div id="loginForm">
+                <div class="form-group">
+                    <input type="text" id="loginUsername" placeholder="用户名" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="loginPassword" placeholder="密码" required>
+                </div>
+                <button class="auth-btn" onclick="login()">登录</button>
+                <p class="auth-switch">
+                    还没有账号？<a href="#" onclick="showRegister()">立即注册</a>
+                </p>
+            </div>
+            
+            <!-- 注册表单 -->
+            <div id="registerForm" style="display: none;">
+                <div class="form-group">
+                    <input type="text" id="regUsername" placeholder="用户名" required>
+                </div>
+                <div class="form-group">
+                    <input type="email" id="regEmail" placeholder="邮箱（可选）">
+                </div>
+                <div class="form-group">
+                    <input type="password" id="regPassword" placeholder="密码" required>
+                </div>
+                <button class="auth-btn" onclick="register()">注册</button>
+                <p class="auth-switch">
+                    已有账号？<a href="#" onclick="showLogin()">立即登录</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== 主应用 ========== -->
+    <div class="app-container" id="appContainer" style="display: none;">
         <!-- 头部 -->
         <header class="header">
             <h1>AI 智能问答</h1>
             <span class="subtitle">基于 LangChain + RAG</span>
+            <div class="header-right">
+                <span id="currentUser"></span>
+                <button class="logout-btn" onclick="logout()">退出</button>
+            </div>
         </header>
 
-        <!-- 聊天区域 -->
-        <main class="chat-container" id="chatContainer">
-            <div class="welcome-message">
-                <p>👋 你好！我是 AI 助手，可以回答你的问题。</p>
-                <p>💡 上传文档后开启「知识库」模式，我会基于文档内容回答。</p>
-            </div>
-        </main>
-
-        <!-- 知识库面板 -->
-        <div class="knowledge-panel" id="knowledgePanel" style="display: none;">
-            <div class="panel-header">
-                <span>📚 知识库设置</span>
-                <button class="close-btn" onclick="toggleKnowledgePanel()">✕</button>
-            </div>
-            <div class="panel-content">
-                <div class="status-row">
-                    <span>状态：</span>
-                    <span id="kbStatus">未初始化</span>
-                </div>
-                <div class="status-row">
-                    <span>文档块：</span>
-                    <span id="kbChunkCount">0</span>
-                </div>
-                <div class="toggle-row">
-                    <span>使用知识库回答</span>
-                    <label class="switch">
-                        <input type="checkbox" id="useKnowledge">
-                        <span class="slider"></span>
-                    </label>
+        <div class="main-content">
+            <!-- 左侧边栏 -->
+            <aside class="sidebar">
+                <!-- 知识库管理 -->
+                <div class="sidebar-section">
+                    <div class="section-header" onclick="toggleSection('kbSection')">
+                        <span>📚 知识库管理</span>
+                        <span class="toggle-icon" id="kbToggleIcon">▼</span>
+                    </div>
+                    <div class="section-content" id="kbSection">
+                        <button class="create-btn" onclick="showCreateKbModal()">+ 新建知识库</button>
+                        <div class="item-list" id="kbList">
+                            <div class="empty-state">暂无知识库</div>
+                        </div>
+                    </div>
                 </div>
 
+                <!-- 会话管理 -->
+                <div class="sidebar-section">
+                    <div class="section-header" onclick="toggleSection('convSection')">
+                        <span>💬 会话列表</span>
+                        <span class="toggle-icon" id="convToggleIcon">▼</span>
+                    </div>
+                    <div class="section-content" id="convSection">
+                        <button class="create-btn" onclick="createNewConversation()">+ 新建对话</button>
+                        <div class="item-list" id="conversationList">
+                            <div class="empty-state">暂无会话</div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- 右侧聊天区域 -->
+            <div class="chat-area">
+                <!-- 聊天消息 -->
+                <main class="chat-container" id="chatContainer">
+                    <div class="welcome-message">
+                        <p>👋 你好！我是 AI 助手，可以回答你的问题。</p>
+                        <p>💡 选择知识库后开启「知识库模式」，我会基于文档内容回答。</p>
+                    </div>
+                </main>
+
+                <!-- 输入区域 -->
+                <footer class="input-container">
+                    <div class="input-options">
+                        <label class="kb-checkbox">
+                            <input type="checkbox" id="useKnowledge" disabled>
+                            <span>使用知识库</span>
+                        </label>
+                        <select id="kbSelect" disabled>
+                            <option value="">选择知识库</option>
+                        </select>
+                    </div>
+                    <div class="input-row">
+                        <input 
+                            type="text" 
+                            id="messageInput" 
+                            placeholder="请输入消息..." 
+                            onkeypress="handleKeyPress(event)"
+                        >
+                        <button onclick="sendMessage()">发送</button>
+                    </div>
+                </footer>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== 新建知识库弹窗 ========== -->
+    <div class="modal" id="createKbModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span>新建知识库</span>
+                <button class="close-btn" onclick="hideCreateKbModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>知识库名称</label>
+                    <input type="text" id="newKbName" placeholder="输入知识库名称">
+                </div>
+                <div class="form-group">
+                    <label>描述（可选）</label>
+                    <textarea id="newKbDesc" placeholder="输入知识库描述"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="hideCreateKbModal()">取消</button>
+                <button class="btn-primary" onclick="createKnowledgeBase()">创建</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== 知识库详情弹窗 ========== -->
+    <div class="modal" id="kbDetailModal" style="display: none;">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <span id="kbDetailTitle">知识库详情</span>
+                <button class="close-btn" onclick="hideKbDetailModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <!-- 统计信息 -->
+                <div class="kb-stats">
+                    <div class="stat-item">
+                        <span class="stat-value" id="kbDocCount">0</span>
+                        <span class="stat-label">文档数</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="kbChunkCount">0</span>
+                        <span class="stat-label">文档块数</span>
+                    </div>
+                </div>
+                
                 <!-- 文件上传 -->
                 <div class="upload-section">
+                    <h4>上传文档</h4>
                     <div class="file-upload">
                         <input type="file" id="fileInput" accept=".pdf,.txt" style="display: none;">
                         <button class="file-btn" onclick="document.getElementById('fileInput').click()">
@@ -62,26 +187,13 @@
                     
                     <textarea id="docContent" placeholder="粘贴文档内容..."></textarea>
                     <input type="text" id="docTitle" placeholder="文档标题（可选）">
-                    <button onclick="uploadDocument()">📤 添加文本</button>
-                </div>  
-
-                <button class="clear-btn" onclick="clearKnowledge()">🗑️ 清空知识库</button>
+                    <button class="btn-primary full-width" onclick="uploadText()">📤 添加文本</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-danger" onclick="deleteKnowledgeBase()">🗑️ 删除知识库</button>
             </div>
         </div>
-
-        <!-- 输入区域 -->
-        <footer class="input-container">
-            <button class="kb-toggle-btn" id="kbToggleBtn" onclick="toggleKnowledgePanel()">
-                📚
-            </button>
-            <input 
-                type="text" 
-                id="messageInput" 
-                placeholder="请输入消息..." 
-                onkeypress="handleKeyPress(event)"
-            >
-            <button onclick="sendMessage()">发送</button>
-        </footer>
     </div>
 
     <script src="/static/app.js"></script>

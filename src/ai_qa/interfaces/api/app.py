@@ -17,8 +17,8 @@ app = FastAPI(
 
 # 注册 API 路由
 app.include_router(router, prefix="/api/v1")
-app.include_router(knowledge_router, prefix="/api/v1")
-app.include_router(auth_router, prefix="/api/v1")
+app.include_router(knowledge_router, prefix="/api/v1", tags=["知识库"])
+app.include_router(auth_router, prefix="/api/v1", tags=["认证"])
 
 # 静态文件目录
 STATIC_DIR = Path(__file__).parent.parent / "web" / "static"

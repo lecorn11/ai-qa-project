@@ -43,10 +43,10 @@ async def create_conversation(
     memory.save_conversation(conversation)
 
     return ConversationResponse(
-        sessiong_id=conversation.session_id,
+        session_id=conversation.session_id,
         title=conversation.title or "新对话",
         created_at=conversation.created_at,
-        update_at = conversation.updated_at
+        updated_at=conversation.updated_at
     )
 
 @router.get("", response_model=ConversationListResponse)
@@ -61,10 +61,10 @@ async def list_conversations(
     return ConversationListResponse(
         conversations=[
             ConversationResponse(
-                sessiong_id=conv.session_id,
+                session_id=conv.session_id,
                 title=conv.title or "新对话",
                 created_at=conv.created_at,
-                update_at = conv.updated_at
+                updated_at=conv.updated_at
             )
             for conv in conversations
         ]
@@ -81,9 +81,9 @@ async def send_message(
 ):
     """发送消息并获取 AI 回复（支持知识库）"""
 
-    if request.use_knowledge and knowledge_service.chunk_count > 0:
+    if request.use_knowledge and knowledge_service.get_chunk_count(request.knowledge_base_id) > 0:
         # 使用知识库回答
-        response_content = knowledge_service.query(request.conten,session_id=session_id)
+        response_content = knowledge_service.query(request.content,session_id=session_id)
 
         # 同时保存到对话历史
         conversation = memory.get_conversation(session_id, current_user.id)
@@ -105,7 +105,7 @@ async def send_message(
         timestamp=last_message.timestamp
     )
 
-@router.post("/conversations/{session_id}/messages/stream")
+@router.post("/{session_id}/messages/stream")
 async def send_message_stream(
     session_id: str,
     request: SendMessageRequest,
@@ -116,7 +116,7 @@ async def send_message_stream(
 ):
     """发送消息并获取 AI 回复（流式）"""
     # 流式暂时只支持普通对话，知识库对话后续可以扩展
-    if request.use_knowledge and knowledge_service.chunk_count > 0:
+    if request.use_knowledge and knowledge_service.get_chunk_count(request.knowledge_base_id) > 0:
 
         def generate():
             full_response = ""
@@ -125,7 +125,8 @@ async def send_message_stream(
             for chunk in knowledge_service.query_stream(
                 request.content,
                 session_id=session_id,
-                user_id=current_user.id
+                user_id=current_user.id,
+                knowledge_base_id=request.knowledge_base_id
             ):
                 full_response += chunk
                 yield f"data: {json.dumps(chunk)}\n\n"
@@ -169,7 +170,7 @@ async def get_conversation(
         ]
     }
 
-@router.delete("/conversations/{session_id}", response_model=SuccessResponse)
+@router.delete("/{session_id}", response_model=SuccessResponse)
 async def delete_conversation(
     session_id: str,
     current_user: User = Depends(get_current_user),

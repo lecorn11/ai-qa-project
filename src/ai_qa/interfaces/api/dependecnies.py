@@ -5,6 +5,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from ai_qa.application.knowledge_service import KnowledgeService
+from ai_qa.application.knowledge_base_service import KnowledgeBaseService
 from ai_qa.application.user_service import UserService
 from ai_qa.config.settings import Settings
 from ai_qa.infrastructure.auth.security import verify_token
@@ -74,8 +75,8 @@ def get_chat_service(
         memory=memory
     )
 
-@lru_cache
 def get_knowledge_service(
+    db: Session = Depends(get_db),
     vector_store: VectorStorePort = Depends(get_vector_store),
     memory: ConversationMemoryPort = Depends(get_memory)
 ) -> KnowledgeService:
@@ -83,8 +84,13 @@ def get_knowledge_service(
     return KnowledgeService(
         vector_store=vector_store,
         llm=get_llm(),
-        memory=memory
+        memory=memory,
+        db=db
     )
+
+def get_knowledge_base_service(db: Session = Depends(get_db)) -> KnowledgeBaseService:
+    """获取知识库管理服务"""
+    return KnowledgeBaseService(db)
 
 # ====== 用户认证 ======
 

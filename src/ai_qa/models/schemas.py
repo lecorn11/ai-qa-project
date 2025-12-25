@@ -19,6 +19,14 @@ class AddDocumentRequest(BaseModel):
     content: str
     title: str | None = None
 
+class CreateKnowledgeBaseRequest(BaseModel):
+    name: str
+    description: str | None = None
+
+class UpdateKnowledgeBaseRequest(BaseModel):
+    name: str
+    description: str | None = None
+
 # ============ 响应模型 ============
 
 class MessageResponse(BaseModel):
@@ -61,6 +69,26 @@ class DocumentListResponse(BaseModel):
     """文档列表响应"""
     documents: list[DocumentInfo]
     total_chunks: int
+
+class KnowledgeBaseResponse(BaseModel):
+    """知识库管理响应"""
+    id: int
+    name: str
+    description: str | None
+    document_count: int = 0
+    chunk_count: int = 0
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+    class Config:
+        from_attributes = True
+
+class KnowledgeBaseListResponse(BaseModel):
+    knowledge_bases: list[KnowledgeBaseResponse]
+
+class AddDocumentRequest(BaseModel):
+    content: str
+    title: str | None = None
 
 # ============ 通用响应 ============
 

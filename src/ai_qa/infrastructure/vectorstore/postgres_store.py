@@ -32,7 +32,7 @@ class PostgresVectorStore(VectorStorePort):
         # 批量构建 文档块数据库模型
         chunk_models = [
             DocumentChunkModel(
-                document_id = chunk.chunk_id,
+                document_id = chunk.document_id,
                 content = chunk.content,
                 metadata = chunk.metadata,
                 embedding = vector,

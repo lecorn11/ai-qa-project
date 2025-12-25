@@ -2,6 +2,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from ai_qa.domain.entities import DocumentChunk, KnowledgeBase, MessageRole, Message
 from ai_qa.domain.ports import VectorStorePort, LLMPort, ConversationMemoryPort
+from ai_qa.infrastructure.database.models import Document as DocumentModel
 
 class KnowledgeService:
     """知识库服务"""
@@ -11,12 +12,14 @@ class KnowledgeService:
             vector_store: VectorStorePort,
             llm: LLMPort,
             memory: ConversationMemoryPort,
+            db = None, # 数据库服务
             chunk_size: int = 500,
             chunk_overlap: int = 50
     ):
         self._vector_store = vector_store
         self._llm = llm
         self._memory = memory
+        self._db = db
 
         # 文本切分器
         self._splitter = RecursiveCharacterTextSplitter(
@@ -80,6 +83,49 @@ class KnowledgeService:
         metadata = {"source": file_path}
         return self.add_text(text,metadata)
     
+    def add_document(
+            self,
+            knowledge_base_id: int,
+            title: str,
+            content: str,
+            file_type: str = "text",
+            file_size: int = None,
+            file_path: str = None
+    ) -> int:
+        """添加文档到知识库"""
+        # 1. 创建文档记录
+        doc = DocumentModel(
+            knowledge_base_id=knowledge_base_id,
+            title=title,
+            file_path=file_path,
+            file_type=file_type,
+            file_size=file_size or len(content.encode('utf-8'))
+        )
+        self._db.add(doc)
+        self._db.flush()
+
+        # 2. 切分文件
+        text_chunks = self._splitter.split_text(content)
+
+        # 3. 创建 DocumentChunk 实体
+        chunks = []
+        for i, text in enumerate(text_chunks):
+            chunk = DocumentChunk(
+                content=text,
+                document_id=doc.id,
+                chunk_id=i,
+                metadata={"title":title}
+            )
+            chunks.append(chunk)
+        
+        # 4. 向量化存储
+        self._vector_store.add_documents(chunks, knowledge_base_id=knowledge_base_id)
+
+        # 5. 提交事务
+        self._db.commit()
+
+        return len(chunks)
+
     def _rewrite_query(self, session_id: str, question: str) -> str:
         """根据对话历史改写查询（解决指代问题）"""
 
@@ -118,11 +164,12 @@ class KnowledgeService:
 
         return rewritten.strip()
 
-    def query(self, question: str, session_id: str = None, top_k: int = 3) -> str:
+    def query(self, question: str, knowledge_base_id: int,session_id: str = None, top_k: int = 3) -> str:
         """基于知识库回答问题(RAG)
         
         Args:
             question: 用户问题
+            knowledge_base_id: 知识库 ID
             session_id: 会话 ID
             top_k: 检索的文档块数量
 
@@ -137,7 +184,7 @@ class KnowledgeService:
                 print(f"[查询改写]{question} -> {search_query}")
         
         # 2. 检索相关文档
-        relevtant_chunks = self._vector_store.search(search_query, top_k)
+        relevtant_chunks = self._vector_store.search(search_query, knowledge_base_id, top_k)
 
         if not relevtant_chunks:
             return "知识库中没有找到相关内容"
@@ -170,7 +217,7 @@ class KnowledgeService:
 
         return response
     
-    def query_stream(self, question: str, session_id: str = None, top_k: int = 3) -> str:
+    def query_stream(self, question: str, knowledge_base_id: int, session_id: str = None, top_k: int = 3) -> str:
         """基于知识库回答问题(RAG)
         
         Args:
@@ -189,7 +236,7 @@ class KnowledgeService:
                 print(f"[查询改写]{question} -> {search_query}")
         
         # 2. 检索相关文档
-        relevtant_chunks = self._vector_store.search(search_query, top_k)
+        relevtant_chunks = self._vector_store.search(search_query, knowledge_base_id, top_k)
 
         if not relevtant_chunks:
             return "知识库中没有找到相关内容"
@@ -226,10 +273,9 @@ class KnowledgeService:
         """获取相关文档块（用于调试或展示来源）"""
         return self._vector_store.search(question, top_k=top_k)
 
-    # @property
-    def chunk_count(self) -> int:
+    def get_chunk_count(self, knowledge_base_id: int = None) -> int:
         """返回知识库中的文档块数量"""
-        return self._vector_store.count()
+        return self._vector_store.count(knowledge_base_id=knowledge_base_id)
 
 
 

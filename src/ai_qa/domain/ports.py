@@ -35,7 +35,7 @@ class ConversationMemoryPort(ABC):
     """
 
     @abstractmethod
-    def get_conversation(self, session_id: str, user_id: int = None) -> Conversation:
+    def get_conversation(self, session_id: str, user_id: str = None) -> Conversation:
         """获取对话，如果不存在则创建新的
 
         Args:
@@ -56,7 +56,7 @@ class ConversationMemoryPort(ABC):
         pass
 
     @abstractmethod
-    def list_conversations(self, user_id: int) -> list[Conversation]:
+    def list_conversations(self, user_id: str) -> list[Conversation]:
         """列出用户的所有会话
 
         Args:
@@ -68,7 +68,7 @@ class ConversationMemoryPort(ABC):
         pass
 
     @abstractmethod
-    def clear_conversation(self, session_id: str, user_id: int = None) -> bool:
+    def clear_conversation(self, session_id: str, user_id: str = None) -> bool:
         """清除指定会话的对话历史
 
         Args:
@@ -94,22 +94,22 @@ class VectorStorePort(ABC):
     """向量存储端口"""
 
     @abstractmethod
-    def add_documents(self, chunks: list[DocumentChunk], knowledge_base_id: int = None) -> None:
+    def add_documents(self, chunks: list[DocumentChunk], knowledge_base_id: str = None) -> None:
         """添加文档块到向量存储"""
         pass
     
     @abstractmethod
-    def search(self, query: str, knowledge_base_id: int = None, top_k: int = 3) -> list[DocumentChunk]:
+    def search(self, query: str, knowledge_base_id: str = None, top_k: int = 3) -> list[DocumentChunk]:
         """搜索相关文档块"""
         pass
 
     @abstractmethod
-    def clear(self, knowledge_base_id: int = None) -> None:
+    def clear(self, knowledge_base_id: str = None) -> None:
         """清空向量存储"""
         pass
 
     @abstractmethod
-    def count(self, knowledge_base_id: int = None) -> int:
+    def count(self, knowledge_base_id: str = None) -> int:
         """返回文档块数量"""
         pass
 

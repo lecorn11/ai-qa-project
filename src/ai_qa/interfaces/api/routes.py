@@ -36,14 +36,13 @@ async def create_conversation(
     """创建新对话"""
     
     # 创建空对话
-    conversation = Conversation(session_id="0")
-    conversation.user_id = current_user.id
+    conversation = Conversation(user_id=current_user.id)
 
     # 保存对话
     memory.save_conversation(conversation)
 
     return ConversationResponse(
-        session_id=conversation.session_id,
+        session_id=conversation.id,
         title=conversation.title or "新对话",
         created_at=conversation.created_at,
         updated_at=conversation.updated_at
@@ -61,7 +60,7 @@ async def list_conversations(
     return ConversationListResponse(
         conversations=[
             ConversationResponse(
-                session_id=conv.session_id,
+                session_id=conv.id,
                 title=conv.title or "新对话",
                 created_at=conv.created_at,
                 updated_at=conv.updated_at

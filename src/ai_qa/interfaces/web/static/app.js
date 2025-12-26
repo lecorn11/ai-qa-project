@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // 监听知识库选择
     document.getElementById('kbSelect').addEventListener('change', (e) => {
-        currentKnowledgeBaseId = e.target.value ? parseInt(e.target.value) : null;
+        currentKnowledgeBaseId = e.target.value ? e.target.value : null;
     });
 });
 
@@ -184,8 +184,8 @@ function renderKnowledgeBases() {
     }
     
     container.innerHTML = knowledgeBases.map(kb => `
-        <div class="list-item ${currentKnowledgeBaseId === kb.id ? 'selected' : ''}" 
-             onclick="selectKnowledgeBase(${kb.id})">
+        <div class="list-item ${currentKnowledgeBaseId === kb.id ? 'selected' : ''}"
+             onclick="selectKnowledgeBase('${kb.id}')">
             <div class="list-item-title">📚 ${kb.name}</div>
             <div class="list-item-sub">${kb.document_count} 文档 · ${kb.chunk_count} 块</div>
         </div>
@@ -407,6 +407,11 @@ function formatTime(isoString) {
 }
 
 async function createNewConversation() {
+
+    currentConversationId = null;  // 清空当前会话 ID
+    clearChat();                   // 清空聊天区域
+    renderConversations();         // 更新列表选中状态
+
     try {
         const response = await fetch(`${API_BASE}/conversations`, {
             method: 'POST',
@@ -425,6 +430,25 @@ async function createNewConversation() {
         return null;
     }
 }
+
+async function doCreateConversation() {
+    try {
+        const response = await fetch(`${API_BASE}/conversations`, {
+            method: 'POST',
+            headers: authHeaders()
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            currentConversationId = data.session_id;
+            return data.session_id;
+        }
+    } catch (error) {
+        console.error('创建会话失败:', error);
+        return null;
+    }
+}
+
 
 async function selectConversation(sessionId) {
     currentConversationId = String(sessionId);
@@ -485,7 +509,7 @@ async function sendMessage() {
     
     // 确保有会话
     if (!currentConversationId) {
-        const sessionId = await createNewConversation();
+        const sessionId = await doCreateConversation();
         if (!sessionId) {
             alert('创建会话失败，请重试');
             return;
@@ -515,7 +539,7 @@ async function sendMessage() {
             use_knowledge: useKnowledge
         };
         if (useKnowledge && kbId) {
-            body.knowledge_base_id = parseInt(kbId);
+            body.knowledge_base_id = kbId;
         }
         
         const response = await fetch(`${API_BASE}/conversations/${currentConversationId}/messages/stream`, {

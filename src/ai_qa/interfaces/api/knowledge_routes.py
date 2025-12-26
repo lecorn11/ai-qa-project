@@ -59,7 +59,7 @@ async def list_knowledge_bases(
 
 @router.get("/knowledge-bases/{kb_id}", response_model=KnowledgeBaseResponse)
 async def get_knowledge_base(
-    kb_id: int,
+    kb_id: str,
     current_user: User = Depends(get_current_user),
     kb_service: KnowledgeBaseService = Depends(get_knowledge_base_service)
 ):
@@ -73,7 +73,7 @@ async def get_knowledge_base(
 
 @router.put("/knowledge-bases/{kb_id}", response_model=KnowledgeBaseResponse)
 async def update_knowledge_base(
-    kb_id: int,
+    kb_id: str,
     request: UpdateKnowledgeBaseRequest,
     current_user: User = Depends(get_current_user),
     kb_service: KnowledgeBaseService = Depends(get_knowledge_base_service)
@@ -94,7 +94,7 @@ async def update_knowledge_base(
 
 @router.delete("/knowledge-bases/{kb_id}", response_model=SuccessResponse)
 async def delete_knowledge_base(
-    kb_id: int,
+    kb_id: str,
     current_user: User = Depends(get_current_user),
     kb_service: KnowledgeBaseService = Depends(get_knowledge_base_service)
 ):
@@ -143,7 +143,7 @@ async def clear_documents(
 
 @router.post("/knowledge-bases/{kb_id}/documents/text", response_model=SuccessResponse)
 async def add_document(
-    kb_id: int,
+    kb_id: str,
     request: AddDocumentRequest,
     current_user: User = Depends(get_current_user),
     knowledge_service: KnowledgeService = Depends(get_knowledge_service),
@@ -186,7 +186,7 @@ async def add_document(
 
 @router.post("/knowledge-bases/{kb_id}/documents/upload", response_model=SuccessResponse)
 async def upload_document(
-    kb_id: int,
+    kb_id: str,
     current_user: User = Depends(get_current_user),
     file: UploadFile = File(...),
     knowledge_service: KnowledgeService = Depends(get_knowledge_service),

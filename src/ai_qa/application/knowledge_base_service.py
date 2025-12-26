@@ -27,7 +27,7 @@ class KnowledgeBaseService:
         self._db.refresh(kb) # 从数据库重新加载
         return kb
     
-    def delete(self, kb_id: int, user_id: int) -> bool:
+    def delete(self, kb_id: str, user_id: str) -> bool:
         """删除知识库(软删除)"""
         kb = self.get_by_id(kb_id, user_id)
         if not kb:
@@ -38,7 +38,7 @@ class KnowledgeBaseService:
         self._db.commit()
         return True
 
-    def update(self, kb_id: int, user_id: int, name: str = None, description: str = None) -> KnowledgeBaseModel:
+    def update(self, kb_id: str, user_id: str, name: str = None, description: str = None) -> KnowledgeBaseModel:
         """更新知识库"""
         kb = self.get_by_id(kb_id, user_id)
         if not kb:
@@ -55,7 +55,7 @@ class KnowledgeBaseService:
 
         return kb
 
-    def get_by_id(self, kb_id: int, user_id: int) -> KnowledgeBaseModel | None:
+    def get_by_id(self, kb_id: str, user_id: str) -> KnowledgeBaseModel | None:
         """获取知识库"""
         return self._db.query(KnowledgeBaseModel).filter(
             KnowledgeBaseModel.id == kb_id,
@@ -63,14 +63,14 @@ class KnowledgeBaseService:
             KnowledgeBaseModel.status == 1
         ).first()
     
-    def list_by_user(self, user_id: int) -> list[KnowledgeBaseModel]:
+    def list_by_user(self, user_id: str) -> list[KnowledgeBaseModel]:
         """列出用户的所有知识库"""
         return self._db.query(KnowledgeBaseModel).filter(
             KnowledgeBaseModel.user_id == user_id,
             KnowledgeBaseModel.status == 1
         ).order_by(KnowledgeBaseModel.created_at.desc()).all()
     
-    def get_stats(self, kb_id: int, user_id: int) -> dict | None:
+    def get_stats(self, kb_id: str, user_id: str) -> dict | None:
         """获取知识库统计信息"""
         kb = self.get_by_id(kb_id, user_id)
         if not kb:

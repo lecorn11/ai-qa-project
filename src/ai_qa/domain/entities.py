@@ -33,9 +33,9 @@ class Message:
 @dataclass
 class Conversation:
     """对话实体"""
-    session_id: str
+    id: str | None = None
     messages: list[Message] = field(default_factory=list)
-    user_id: Optional[int] = None
+    user_id: Optional[str] = None
     title: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
@@ -62,7 +62,7 @@ class DocumentChunk:
     content: str
     metadata: dict = field(default_factory=dict)
     embedding: Optional[list[float]] = None
-    document_id: Optional[int] = None
+    document_id: Optional[str] = None
     chunk_id: str = None
 
 

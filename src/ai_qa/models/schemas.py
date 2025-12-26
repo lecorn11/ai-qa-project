@@ -8,7 +8,7 @@ from datetime import datetime
 class SendMessageRequest(BaseModel):
     """发送消息请求模型"""
     content: str
-    knowledge_base_id: int | None = None
+    knowledge_base_id: str | None = None
     use_knowledge: bool = False
 
 class CreateConversationRequest(BaseModel):
@@ -73,7 +73,7 @@ class DocumentListResponse(BaseModel):
 
 class KnowledgeBaseResponse(BaseModel):
     """知识库管理响应"""
-    id: int
+    id: str
     name: str
     description: str | None
     document_count: int = 0
@@ -95,7 +95,7 @@ class AddDocumentRequest(BaseModel):
 
 class SuccessResponse(BaseModel):
     """操作成功响应"""
-    messaage: str
+    message: str
 
 class ErrorResponse[BaseModel]:
     """错误响应"""

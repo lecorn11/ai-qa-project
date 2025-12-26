@@ -22,7 +22,7 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
 
 class UserResponse(BaseModel):
-    id: int
+    id: str
     username: str
     email: str | None
     nickname: str | None

@@ -6,6 +6,8 @@ from sqlalchemy import (
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from pgvector.sqlalchemy import Vector
 
+from ai_qa.infrastructure.utils.id_generator import generate_id
+
 class Base(DeclarativeBase):
     """ORM 基类"""
     pass
@@ -14,7 +16,7 @@ class User(Base):
     """用户表"""
     __tablename__ = "users"
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_id)
     username: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     email: Mapped[str | None] = mapped_column(String(100), unique=True)
@@ -32,8 +34,8 @@ class KnowledgeBase(Base):
     """知识库表"""
     __tablename__ = "knowledge_bases"
     
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), nullable=False)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_id)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
     status: Mapped[int] = mapped_column(SmallInteger, default=1)
@@ -54,8 +56,8 @@ class Document(Base):
     """文档表"""
     __tablename__ = "documents"
     
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-    knowledge_base_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("knowledge_bases.id"), nullable=False)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_id)
+    knowledge_base_id: Mapped[str] = mapped_column(String(36), ForeignKey("knowledge_bases.id"), nullable=False)
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     file_path: Mapped[str | None] = mapped_column(String(500))
     file_type: Mapped[str | None] = mapped_column(String(20))
@@ -77,8 +79,8 @@ class DocumentChunk(Base):
     """文档块表"""
     __tablename__ = "document_chunks"
     
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-    document_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("documents.id"), nullable=False)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_id)
+    document_id: Mapped[str] = mapped_column(String(36), ForeignKey("documents.id"), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     embedding = mapped_column(Vector(1024))  # pgvector 向量类型
     chunk_index: Mapped[int | None] = mapped_column()
@@ -96,8 +98,8 @@ class Conversation(Base):
     """会话表"""
     __tablename__ = "conversations"
     
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), nullable=False)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_id)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False)
     title: Mapped[str | None] = mapped_column(String(200))
     status: Mapped[int] = mapped_column(SmallInteger, default=1)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
@@ -116,8 +118,8 @@ class Message(Base):
     """消息表"""
     __tablename__ = "messages"
     
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-    conversation_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("conversations.id"), nullable=False)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_id)
+    conversation_id: Mapped[str] = mapped_column(String(36), ForeignKey("conversations.id"), nullable=False)
     role: Mapped[str] = mapped_column(String(20), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

@@ -62,6 +62,6 @@ class UserService:
 
         return user, token
     
-    def get_user_by_id(self, user_id: int) -> User | None:
+    def get_user_by_id(self, user_id: str) -> User | None:
         """根据 ID 获取用户"""
         return self._db.query(User).filter(User.id == user_id).first()

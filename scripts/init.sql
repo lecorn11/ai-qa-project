@@ -3,7 +3,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 
 -- 1. 用户表
 CREATE TABLE users (
-    id            BIGSERIAL PRIMARY KEY,
+    id            VARCHAR(36) PRIMARY KEY, -- UUID v7
     username      VARCHAR(50) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     email         VARCHAR(100) UNIQUE,
@@ -16,8 +16,8 @@ CREATE TABLE users (
 
 -- 2. 知识库表
 CREATE TABLE knowledge_bases (
-    id          BIGSERIAL PRIMARY KEY,
-    user_id     BIGINT NOT NULL REFERENCES users(id),
+    id          VARCHAR(36) PRIMARY KEY, -- UUID v7
+    user_id     VARCHAR(36) NOT NULL REFERENCES users(id),
     name        VARCHAR(100) NOT NULL,
     description TEXT,
     status      SMALLINT DEFAULT 1,
@@ -27,8 +27,8 @@ CREATE TABLE knowledge_bases (
 
 -- 3. 文档表
 CREATE TABLE documents (
-    id                BIGSERIAL PRIMARY KEY,
-    knowledge_base_id BIGINT NOT NULL REFERENCES knowledge_bases(id),
+    id                VARCHAR(36) PRIMARY KEY, -- UUID v7
+    knowledge_base_id VARCHAR(36) NOT NULL REFERENCES knowledge_bases(id),
     title             VARCHAR(200) NOT NULL,
     file_path         VARCHAR(500),
     file_type         VARCHAR(20),
@@ -40,8 +40,8 @@ CREATE TABLE documents (
 
 -- 4. 文档块表
 CREATE TABLE document_chunks (
-    id          BIGSERIAL PRIMARY KEY,
-    document_id BIGINT NOT NULL REFERENCES documents(id),
+    id          VARCHAR(36) PRIMARY KEY, -- UUID v7
+    document_id VARCHAR(36) NOT NULL REFERENCES documents(id),
     content     TEXT NOT NULL,
     embedding   vector(1024),
     chunk_index INT,
@@ -50,8 +50,8 @@ CREATE TABLE document_chunks (
 
 -- 5. 会话表
 CREATE TABLE conversations (
-    id          BIGSERIAL PRIMARY KEY,
-    user_id     BIGINT NOT NULL REFERENCES users(id),
+    id          VARCHAR(36) PRIMARY KEY, -- UUID v7
+    user_id     VARCHAR(36) NOT NULL REFERENCES users(id),
     title       VARCHAR(200),
     status      SMALLINT DEFAULT 1,
     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -60,8 +60,8 @@ CREATE TABLE conversations (
 
 -- 6. 消息表
 CREATE TABLE messages (
-    id              BIGSERIAL PRIMARY KEY,
-    conversation_id BIGINT NOT NULL REFERENCES conversations(id),
+    id              VARCHAR(36) PRIMARY KEY, -- UUID v7
+    conversation_id VARCHAR(36) NOT NULL REFERENCES conversations(id),
     role            VARCHAR(20) NOT NULL,
     content         TEXT NOT NULL,
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP

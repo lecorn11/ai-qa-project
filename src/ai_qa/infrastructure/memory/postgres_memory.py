@@ -19,7 +19,7 @@ class PostgresConversationMemory(ConversationMemoryPort):
         self._db = db
     
         
-    def get_conversation(self, session_id: str, user_id: int = None) -> Conversation:
+    def get_conversation(self, session_id: str, user_id: str = None) -> Conversation:
         """获取对话"""
         if not session_id:
             raise ValueError("session_id 不能为空")
@@ -35,10 +35,10 @@ class PostgresConversationMemory(ConversationMemoryPort):
 
         # 不存在则返回空对话
         if not db_conversation:
-            return Conversation(session_id=session_id, user_id=user_id)
+            return Conversation(id=session_id, user_id=user_id)
 
         # 创建领域实体
-        conversation = Conversation(session_id=session_id)
+        conversation = Conversation(id=session_id)
         conversation.user_id = db_conversation.user_id 
 
         # 查询数据库-消息数据模型，按时间排序
@@ -58,14 +58,15 @@ class PostgresConversationMemory(ConversationMemoryPort):
     def save_conversation(self, conversation: Conversation) -> None:
         """保存对话"""
         # 查询数据库中是否存在该会话
-        db_conversation = self._db.query(ConversationModel).filter(
-            ConversationModel.id == conversation.session_id
-        ).first()
+        db_conversation = None
+        if conversation.id:
+            db_conversation = self._db.query(ConversationModel).filter(
+                ConversationModel.id == conversation.id
+            ).first()
 
         if not db_conversation:
             # 创建新对话
             db_conversation = ConversationModel(
-                id = conversation.session_id,
                 user_id = conversation.user_id,
                 title = self._generate_title(conversation),
                 status = 1, # 默认状态-启用,
@@ -73,7 +74,7 @@ class PostgresConversationMemory(ConversationMemoryPort):
             )
             self._db.add(db_conversation)
             self._db.flush()  # 写入数据库（没有提交事务）获取自增 ID
-            conversation.session_id = str(db_conversation.id) # 确保返回字符串类型
+            conversation.id = str(db_conversation.id) # 确保返回字符串类型
         
         # 更新时间
         db_conversation.updated_at = datetime.now()
@@ -95,7 +96,7 @@ class PostgresConversationMemory(ConversationMemoryPort):
 
         self._db.commit()
     
-    def list_conversations(self, user_id: int) -> list[Conversation]:
+    def list_conversations(self, user_id: str) -> list[Conversation]:
         """列出用户的所有会话"""
         db_conversations = self._db.query(ConversationModel).filter(
             ConversationModel.user_id == user_id,
@@ -104,7 +105,7 @@ class PostgresConversationMemory(ConversationMemoryPort):
 
         conversations = [
             Conversation(
-                session_id=str(db_conv.id),
+                id=str(db_conv.id),
                 user_id=db_conv.user_id,
                 title=db_conv.title,
                 created_at=db_conv.created_at,
@@ -115,11 +116,11 @@ class PostgresConversationMemory(ConversationMemoryPort):
 
         return conversations
         
-    def clear_conversation(self, session_id: str, user_id: int = None) -> bool:
+    def clear_conversation(self, session_id: str, user_id: str = None) -> bool:
         """删除对话（软删除）"""
         # 查询数据库中是否存在该会话
         query = self._db.query(ConversationModel).filter(
-            ConversationModel.id == int(session_id)
+            ConversationModel.id == session_id
         )
         if user_id:
             query = query.filter(ConversationModel.user_id == user_id)

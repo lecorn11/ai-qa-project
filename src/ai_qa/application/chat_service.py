@@ -19,7 +19,7 @@ class ChatService:
         self._memory = memory
         self._system_prompt = system_prompt
     
-    def chat(self, session_id: str, user_input: str, user_id: int = None) -> str:
+    def chat(self, session_id: str, user_input: str, user_id: str = None) -> str:
         """处理用户输入并返回 AI 回复
         
         Args:
@@ -50,7 +50,7 @@ class ChatService:
 
         return response
     
-    def chat_stream(self, session_id: str, user_input: str, user_id: int = None) -> Generator:
+    def chat_stream(self, session_id: str, user_input: str, user_id: str = None) -> Generator:
         """ 流式处理用户输入，逐步返回 AI 回复
         
         Args:

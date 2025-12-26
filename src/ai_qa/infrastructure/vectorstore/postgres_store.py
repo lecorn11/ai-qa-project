@@ -20,7 +20,7 @@ class PostgresVectorStore(VectorStorePort):
         self._db = db
         self._embedding = embedding
 
-    def add_documents(self, chunks: list[DocumentChunk], knowledge_base_id: int = None) -> None:
+    def add_documents(self, chunks: list[DocumentChunk], knowledge_base_id: str = None) -> None:
         """添加文档块到向量存储"""
         if not chunks:
             return
@@ -45,7 +45,7 @@ class PostgresVectorStore(VectorStorePort):
         self._db.add_all(chunk_models)
         self._db.commit()
 
-    def search(self, query: str, knowledge_base_id: int = None, top_k: int = 3) -> list[DocumentChunk]:
+    def search(self, query: str, knowledge_base_id: str = None, top_k: int = 3) -> list[DocumentChunk]:
         """搜索相关文档块"""
         # 把查询文本向量化
         query_embedding = self._embedding.embed_query(query)
@@ -77,7 +77,7 @@ class PostgresVectorStore(VectorStorePort):
  
         return results
 
-    def clear(self, knowledge_base_id: int = None) -> None:
+    def clear(self, knowledge_base_id: str = None) -> None:
         """清空向量存储"""
         if knowledge_base_id is not None:
             # 删除指定知识库的文档快
@@ -92,7 +92,7 @@ class PostgresVectorStore(VectorStorePort):
             # 删除所有文档块
             self._db.query(DocumentChunkModel).delete(synchronize_session=False)
 
-    def count(self, knowledge_base_id: int = None) -> int:
+    def count(self, knowledge_base_id: str = None) -> int:
         """返回文档块数量"""
         query = self._db.query(DocumentChunkModel)
         if knowledge_base_id is not None:

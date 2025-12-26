@@ -85,7 +85,7 @@ class KnowledgeService:
     
     def add_document(
             self,
-            knowledge_base_id: int,
+            knowledge_base_id: str,
             title: str,
             content: str,
             file_type: str = "text",
@@ -164,7 +164,7 @@ class KnowledgeService:
 
         return rewritten.strip()
 
-    def query(self, question: str, knowledge_base_id: int,session_id: str = None, top_k: int = 3) -> str:
+    def query(self, question: str, knowledge_base_id: str,session_id: str = None, top_k: int = 3) -> str:
         """基于知识库回答问题(RAG)
         
         Args:
@@ -217,7 +217,7 @@ class KnowledgeService:
 
         return response
     
-    def query_stream(self, question: str, knowledge_base_id: int, session_id: str = None, user_id :int = None, top_k: int = 3) -> str:
+    def query_stream(self, question: str, knowledge_base_id: str, session_id: str = None, user_id :str = None, top_k: int = 3) -> str:
         """基于知识库回答问题(RAG)
         
         Args:
@@ -273,7 +273,7 @@ class KnowledgeService:
         """获取相关文档块（用于调试或展示来源）"""
         return self._vector_store.search(question, top_k=top_k)
 
-    def get_chunk_count(self, knowledge_base_id: int = None) -> int:
+    def get_chunk_count(self, knowledge_base_id: str = None) -> int:
         """返回知识库中的文档块数量"""
         return self._vector_store.count(knowledge_base_id=knowledge_base_id)
 

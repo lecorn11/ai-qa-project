@@ -220,9 +220,11 @@ docker run -p 8000:8000 --env-file .env ai-qa-app
 ## 🗺️ 未来计划
 - [x] RAG 文档问答：上传 PDF 文档，基于文档内容回答
 - [x] Docker 部署：容器化部署方案
-- [ ] 用户认证系统：多用户支持
-- [ ] 持久化存储：支持 Redis/PostgreSQL数据库存储对话
+- [x] 用户认证系统：多用户支持
+- [x] 持久化存储：支持 PostgreSQL数据库存储对话
 - [ ] 多模型支持：添加 OpenAI、Claude 等模型
+- [ ] Tools支持：支持 本地工具和 MCP 工具调用
+- [ ] Agent支持
 
 
 ## 📄 许可证

@@ -14,6 +14,7 @@ class Settings(BaseSettings):
 
     # 应用配置
     app_env: str = Field(default="development", alias="APP_ENV")
+    # 日志配置
     debug: bool = Field(default= True, alias= "DEBUG")
 
     # 知识库持久化目录

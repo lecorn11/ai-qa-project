@@ -15,7 +15,7 @@ class NotFoundException(AppException):
     def __init__(self, resource: str):
         super().__init__(detail=f"{resource}不存在")
 
-class VaildationException(AppException):
+class ValidationException(AppException):
     """参数校验失败 (400)"""
     status_code = 400
 

@@ -3,7 +3,7 @@ from datetime import datetime
 
 from ai_qa.application.knowledge_base_service import KnowledgeBaseService
 from ai_qa.application.knowledge_service import KnowledgeService
-from ai_qa.domain.exceptions import NotFoundException, VaildationException
+from ai_qa.domain.exceptions import NotFoundException, ValidationException
 from ai_qa.infrastructure.database.models import User
 from ai_qa.infrastructure.document.pdf_reader import extract_text_from_pdf
 from ai_qa.interfaces.api.dependecnies import get_current_user, get_knowledge_base_service, get_knowledge_service
@@ -203,7 +203,7 @@ async def upload_document(
     # 检查文件类型
     filename = file.filename.lower()
     if not (filename.endswith(".pdf") or filename.endswith(".txt")):
-        raise VaildationException("只支持 PDF 和 TXT 文件")
+        raise ValidationException("只支持 PDF 和 TXT 文件")
     
     # 读取文件内容
     content = await file.read()
@@ -213,13 +213,13 @@ async def upload_document(
         try:
             text = extract_text_from_pdf(content)
         except Exception as e:
-            raise VaildationException(f"PDF 解析失败：{str(e)}")
+            raise ValidationException(f"PDF 解析失败：{str(e)}")
     else:
         # TXT 文件
         text = content.decode("utf-8")
     
     if not text.strip():
-        raise VaildationException("文件内容为空")
+        raise ValidationException("文件内容为空")
     
     # 确保知识库已创建
     # if knowledge_service._knowledge_base is None:

@@ -1,9 +1,12 @@
+import logging
 from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
 from ai_qa.domain.exceptions import ConflictException, ForbiddenException, UnauthorizedException
 from ai_qa.infrastructure.database.models import User
 from ai_qa.infrastructure.auth import hash_password, verify_password, create_access_token
+
+logger = logging.getLogger(__name__)
 
 class UserService:
     """用户服务"""
@@ -13,6 +16,7 @@ class UserService:
 
     def resigter(self, username: str, password: str, email: str = None) -> User:
         """用户注册"""
+        logger.info(f"用户注册开始 username={username} email={email}")
 
         # 检查用户名是否已存在
         existing_user = self._db.query(User).filter(User.username == username).first()
@@ -36,10 +40,13 @@ class UserService:
         self._db.commit()
         self._db.refresh(user)
 
+        logger.info(f"用户注册成功 user={user}")
+
         return user
     
     def login(self, username: str, password: str) -> tuple[User, str]:
         """ 用户登录，返回（用户，Token）"""
+        logger.info(f"用户登录开始 username={username}")
 
         # 查找用户
         user = self._db.query(User).filter(User.username == username).first()
@@ -61,6 +68,7 @@ class UserService:
         # 生成 Token
         token = create_access_token({"user_id": user.id, "username": user.username})
 
+        logger.info(f"用户登录成功 username={username}")
         return user, token
     
     def get_user_by_id(self, user_id: str) -> User | None:

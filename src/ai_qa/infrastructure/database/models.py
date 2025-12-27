@@ -30,6 +30,8 @@ class User(Base):
     knowledge_bases: Mapped[list["KnowledgeBase"]] = relationship(back_populates="user")
     conversations: Mapped[list["Conversation"]] = relationship(back_populates="user")
 
+    def __repr__(self):
+        return f"User(id={self.id}, username={self.username}, )"
 class KnowledgeBase(Base):
     """知识库表"""
     __tablename__ = "knowledge_bases"
@@ -51,6 +53,8 @@ class KnowledgeBase(Base):
         Index("idx_knowledge_bases_user_id", "user_id"),
     )
 
+    def __repr__(self):
+        return f"KnowledgeBase(id={self.id}, name={self.name}, user_id={self.user_id})"
 
 class Document(Base):
     """文档表"""
@@ -74,6 +78,8 @@ class Document(Base):
         Index("idx_documents_knowledge_base_id", "knowledge_base_id"),
     )
 
+    def __repr__(self):
+        return f"Document(id={self.id}, title={self.title}, kb_id={self.knowledge_base_id})"
 
 class DocumentChunk(Base):
     """文档块表"""
@@ -113,6 +119,9 @@ class Conversation(Base):
         Index("idx_conversations_user_id", "user_id"),
     )
 
+    def __repr__(self):
+        return f"Conversation(id={self.id}, user_id={self.user_id}, title={self.title})"
+
 
 class Message(Base):
     """消息表"""
@@ -130,3 +139,6 @@ class Message(Base):
     __table_args__ = (
         Index("idx_messages_conversation_id", "conversation_id"),
     )
+    
+    def __repr__(self):
+        return f"Message(id={self.id}, conv_id={self.conversation_id}, role={self.role})"

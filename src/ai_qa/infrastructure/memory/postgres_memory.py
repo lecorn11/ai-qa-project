@@ -5,7 +5,7 @@ from hmac import new
 from venv import create
 from requests import Session, session
 from ai_qa.domain.entities import Conversation, MessageRole
-from ai_qa.domain.exceptions import VaildationException
+from ai_qa.domain.exceptions import ValidationException
 from ai_qa.domain.ports import ConversationMemoryPort
 from ai_qa.infrastructure.database.models import (
     Conversation as ConversationModel,
@@ -23,7 +23,7 @@ class PostgresConversationMemory(ConversationMemoryPort):
     def get_conversation(self, session_id: str, user_id: str = None) -> Conversation:
         """获取对话"""
         if not session_id:
-            raise VaildationException("session_id 不能为空")
+            raise ValidationException("session_id 不能为空")
         
         # 查询数据库-会话数据模型
         query = self._db.query(ConversationModel).filter(

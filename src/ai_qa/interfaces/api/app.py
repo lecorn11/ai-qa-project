@@ -1,8 +1,9 @@
 from pathlib import Path
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 
+from ai_qa.interfaces.api.exceptions import register_exception_handlers
 from ai_qa.interfaces.api.routes import router
 from ai_qa.interfaces.api.knowledge_routes import router as knowledge_router
 from ai_qa.interfaces.api.auth_routes import router as auth_router
@@ -14,6 +15,8 @@ app = FastAPI(
     description="基于 LangChain 的智能问答 API, 支持 RAG 知识库",
     version="0.2.0"
 )
+# 注册统一异常处理器
+register_exception_handlers(app)
 
 # 注册 API 路由
 app.include_router(router, prefix="/api/v1")

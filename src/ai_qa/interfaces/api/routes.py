@@ -2,6 +2,8 @@ from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import StreamingResponse
 import json
 
+from httpx import HTTPError
+
 from ai_qa.domain.entities import MessageRole, Conversation
 from ai_qa.application.knowledge_service import KnowledgeService
 from ai_qa.config.settings import settings
@@ -10,6 +12,8 @@ from ai_qa.infrastructure.llm.qwen_adapter import QwenAdapter
 from ai_qa.infrastructure.memory.in_memory import InMemoryConversationMemory
 from ai_qa.application.chat_service import ChatService
 from ai_qa.domain.ports import ConversationMemoryPort
+from ai_qa.domain.exceptions import NotFoundException
+from ai_qa.interfaces.api import app
 from ai_qa.interfaces.api.dependecnies import (
     get_chat_service, 
     get_knowledge_service,
@@ -180,9 +184,6 @@ async def delete_conversation(
     success = memory.clear_conversation(session_id, user_id=current_user.id)
 
     if not success:
-        raise HTTPException(status_code=404, detail="对话不存在")
+        raise NotFoundException("对话不存在")
 
-    return SuccessResponse(messaage=f"会话 {session_id} 已删除。")
-
-
-
+    return SuccessResponse(message=f"会话 {session_id} 已删除。")

@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
+from ai_qa.domain.exceptions import ConflictException, ForbiddenException, UnauthorizedException
 from ai_qa.infrastructure.database.models import User
 from ai_qa.infrastructure.auth import hash_password, verify_password, create_access_token
 
@@ -16,13 +17,13 @@ class UserService:
         # 检查用户名是否已存在
         existing_user = self._db.query(User).filter(User.username == username).first()
         if existing_user:
-            raise ValueError("用户名已存在")
+            raise ConflictException("用户名已存在")
         
         # 检查邮箱是否已存在
         if email:
             existing_email = self._db.query(User).filter(User.email == email).first()
             if existing_email:
-                raise ValueError("邮箱已被注册")
+                raise ConflictException("邮箱已被注册")
         
         # 创建用户
         user = User(
@@ -43,15 +44,15 @@ class UserService:
         # 查找用户
         user = self._db.query(User).filter(User.username == username).first()
         if not user:
-            raise ValueError("用户名或密码错误")
+            raise UnauthorizedException("用户名或密码错误")
         
         # 验证密码
         if not verify_password(password, user.password_hash):
-            raise ValueError("用户名或密码错误")
+            raise UnauthorizedException("用户名或密码错误")
         
         # 检查账号状态(0启动，1禁用)
         if user.status != 1:
-            raise ValueError("账号已被禁用")
+            raise ForbiddenException("账号已被禁用")
         
         # 更新最后登录时间
         user.last_login_at = datetime.now(timezone.utc)

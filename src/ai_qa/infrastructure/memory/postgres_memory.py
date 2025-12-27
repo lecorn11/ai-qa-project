@@ -5,6 +5,7 @@ from hmac import new
 from venv import create
 from requests import Session, session
 from ai_qa.domain.entities import Conversation, MessageRole
+from ai_qa.domain.exceptions import VaildationException
 from ai_qa.domain.ports import ConversationMemoryPort
 from ai_qa.infrastructure.database.models import (
     Conversation as ConversationModel,
@@ -22,7 +23,7 @@ class PostgresConversationMemory(ConversationMemoryPort):
     def get_conversation(self, session_id: str, user_id: str = None) -> Conversation:
         """获取对话"""
         if not session_id:
-            raise ValueError("session_id 不能为空")
+            raise VaildationException("session_id 不能为空")
         
         # 查询数据库-会话数据模型
         query = self._db.query(ConversationModel).filter(
@@ -136,6 +137,6 @@ class PostgresConversationMemory(ConversationMemoryPort):
     def _generate_title(self, conversation: Conversation) -> str:
         """从第一条消息生成标题"""
         if conversation.messages:
-            first_msg = conversation.messages[0]
+            first_msg = conversation.messages[0].content
             return first_msg[:50] + "..." if len(first_msg) > 50 else first_msg
         return "新对话"

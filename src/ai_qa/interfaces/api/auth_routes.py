@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
+from psycopg2 import IntegrityError
 from pydantic import BaseModel, EmailStr
 
+from ai_qa.domain.exceptions import ConflictException
 from ai_qa.interfaces.api.dependecnies import get_user_service, get_current_user
 from ai_qa.infrastructure.database.models import User
 from ai_qa.application.user_service import UserService
@@ -45,8 +47,8 @@ async def register(
             email=request.email
         )
         return user
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except IntegrityError:
+        raise ConflictException("用户名已存在")
     
 
 @router.post("/login", response_model=TokenResponse)
@@ -55,14 +57,11 @@ async def login(
     user_service: UserService = Depends(get_user_service)
 ):
     """用户登录"""
-    try:
-        user, token = user_service.login(
-            username=request.username,
-            password=request.password
-        )
-        return TokenResponse(access_token=token)
-    except ValueError as e:
-        raise HTTPException(status_code=401, detail=str(e))
+    user, token = user_service.login(
+        username=request.username,
+        password=request.password
+    )
+    return TokenResponse(access_token=token)
 
 
 @router.get("/me", response_model=UserResponse)

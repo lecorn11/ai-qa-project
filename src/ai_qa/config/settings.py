@@ -34,6 +34,9 @@ class Settings(BaseSettings):
         alias="DATABASE_URL"
     )
 
+    # JWT配置
+    jwt_secret_key: str = Field(alias="JWT_SECRET_KEY")
+
     # Pydantic V2 配置
     model_config = SettingsConfigDict(
         env_file = ".env",

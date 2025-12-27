@@ -8,6 +8,7 @@ from ai_qa.application.knowledge_service import KnowledgeService
 from ai_qa.application.knowledge_base_service import KnowledgeBaseService
 from ai_qa.application.user_service import UserService
 from ai_qa.config.settings import Settings
+from ai_qa.domain.exceptions import ForbiddenException, UnauthorizedException
 from ai_qa.infrastructure.auth.security import verify_token
 from ai_qa.infrastructure.database.connection import get_db
 from ai_qa.infrastructure.database.models import User
@@ -106,32 +107,20 @@ def get_current_user(
 ) -> User:
     """获取当前登录用户（必须登录）"""
     if not credentials:
-        raise HTTPException(
-            status_code = status.HTTP_401_UNAUTHORIZED,
-            detail = "未提供认证信息",
-        )
+        raise UnauthorizedException("未提供认证信息")
     
     payload = verify_token(credentials.credentials)
     if not payload:
-        raise HTTPException(
-            status_code = status.HTTP_401_UNAUTHORIZED,
-            detail = "Token 无效或已过期",
-        )
+        raise UnauthorizedException("Token 无效或已过期")
     
     user_id = payload.get("user_id")
     user = db.query(User).filter(User.id == user_id).first()
 
     if not user:
-        raise HTTPException(
-            status_code = status.HTTP_401_UNAUTHORIZED,
-            detail = "用户不存在",
-        )
+        raise UnauthorizedException("用户不存在")
     
     if user.status != 1:
-        raise HTTPException(
-            status_code = status.HTTP_403_FORBIDDEN,
-            detail = "用户账号已被禁用",
-        )
+        raise ForbiddenException("用户账号已被禁用")
     
     return user
 

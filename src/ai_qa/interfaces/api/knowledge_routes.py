@@ -3,6 +3,7 @@ from datetime import datetime
 
 from ai_qa.application.knowledge_base_service import KnowledgeBaseService
 from ai_qa.application.knowledge_service import KnowledgeService
+from ai_qa.domain.exceptions import NotFoundException, VaildationException
 from ai_qa.infrastructure.database.models import User
 from ai_qa.infrastructure.document.pdf_reader import extract_text_from_pdf
 from ai_qa.interfaces.api.dependecnies import get_current_user, get_knowledge_base_service, get_knowledge_service
@@ -66,7 +67,7 @@ async def get_knowledge_base(
     """获取知识库详情"""
     stats = kb_service.get_stats(kb_id, current_user.id)
     if not stats:
-        raise HTTPException(status_code=404, detail="知识库不存在")
+        raise NotFoundException(resource="知识库")
     
     return KnowledgeBaseResponse(**stats)
 
@@ -86,7 +87,7 @@ async def update_knowledge_base(
         description=request.description
     )
     if not kb:
-        raise HTTPException(status_code=404, detail="知识库不存在")
+        raise NotFoundException(resource="知识库")
     
     stats = kb_service.get_stats(kb_id, current_user.id)
     return KnowledgeBaseResponse(**stats)
@@ -101,7 +102,7 @@ async def delete_knowledge_base(
     """删除知识库"""
     success = kb_service.delete(kb_id, current_user.id)
     if not success:
-        raise HTTPException(status_code=404, detail="知识库不存在")
+        raise NotFoundException(resource="知识库")
     
     return SuccessResponse(message="知识库已删除")
 
@@ -154,7 +155,7 @@ async def add_document(
     # 验证知识库归属
     kb = kb_service.get_by_id(kb_id, current_user.id)
     if not kb:
-        raise HTTPException(status_code=404, detail="知识库不存在")
+        raise NotFoundException(resource="知识库")
 
     # 添加到知识库
     chunk_count = knowledge_service.add_document(
@@ -197,15 +198,12 @@ async def upload_document(
     # 验证知识库归属
     kb = kb_service.get_by_id(kb_id, current_user.id)
     if not kb:
-        raise HTTPException(status_code=404, detail="知识库不存在")
+        raise NotFoundException(resource="知识库")
     
     # 检查文件类型
     filename = file.filename.lower()
     if not (filename.endswith(".pdf") or filename.endswith(".txt")):
-        raise HTTPException(
-            status_code=400,
-            detail="只支持 PDF 和 TXT 文件"
-        )
+        raise VaildationException("只支持 PDF 和 TXT 文件")
     
     # 读取文件内容
     content = await file.read()
@@ -215,19 +213,13 @@ async def upload_document(
         try:
             text = extract_text_from_pdf(content)
         except Exception as e:
-            raise HTTPException(
-                status_code=400,
-                detail= f"PDF 解析失败：{str(e)}"
-            )
+            raise VaildationException(f"PDF 解析失败：{str(e)}")
     else:
         # TXT 文件
         text = content.decode("utf-8")
     
     if not text.strip():
-        raise HTTPException(
-            status_code=400,
-            detail="文件内容为空"
-        )
+        raise VaildationException("文件内容为空")
     
     # 确保知识库已创建
     # if knowledge_service._knowledge_base is None:

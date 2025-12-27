@@ -97,7 +97,7 @@ class SuccessResponse(BaseModel):
     """操作成功响应"""
     message: str
 
-class ErrorResponse[BaseModel]:
+class ErrorResponse(BaseModel):
     """错误响应"""
     error: str
     detail: str | None = None

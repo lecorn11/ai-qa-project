@@ -8,13 +8,13 @@ from ai_qa.application.knowledge_service import KnowledgeService
 # 1. 创建基础设施
 # LLM服务
 llm = QwenAdapter(
-    api_key=settings.llm_api_key,
+    api_key=settings.llm_api_key.get_secret_value(),
     base_url=settings.llm_base_url,
     model_name=settings.llm_model
 )
 # Embedding 服务
 embedding = DashScopeEmbeddingAdapter(
-    api_key=settings.llm_api_key,
+    api_key=settings.llm_api_key.get_secret_value(),
     model_name=settings.embedding_model_name
 )
 # 向量存储库

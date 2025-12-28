@@ -34,7 +34,7 @@ def get_llm() -> LLMPort:
     """获取 LLM 实例（单例）"""
     settings = get_settings()
     return QwenAdapter(
-        api_key=settings.llm_api_key,
+        api_key=settings.llm_api_key.get_secret_value(),
         base_url=settings.llm_base_url,
         model_name=settings.llm_model
     )
@@ -45,7 +45,7 @@ def get_embedding() -> EmbeddingPort:
     settings = get_settings()
     return DashScopeEmbeddingAdapter(
         model_name=settings.embedding_model_name,
-        api_key=settings.llm_api_key
+        api_key=settings.llm_api_key.get_secret_value()
     )
 
 # ============ 数据库相关（每次请求）============

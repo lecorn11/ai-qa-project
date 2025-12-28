@@ -9,7 +9,7 @@ db = next(get_db())
 
 # 创建 Embedding
 embedding = DashScopeEmbeddingAdapter(
-    api_key=settings.llm_api_key,
+    api_key=settings.llm_api_key.get_secret_value(),
     model_name=settings.embedding_model_name
 )
 

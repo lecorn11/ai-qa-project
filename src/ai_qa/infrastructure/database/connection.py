@@ -6,7 +6,7 @@ from ai_qa.config.settings import settings
 
 # 创建数据库引擎
 engine = create_engine(
-    settings.database_url,
+    settings.database_url.get_secret_value(),
     pool_size=5,             # 连接池大小
     max_overflow=10,         # 超出 pool_size 后最多再创建的连接数
     pool_pre_ping=True,      # 连接前检查连接是否有效

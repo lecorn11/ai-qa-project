@@ -6,7 +6,7 @@ from ai_qa.application.chat_service import ChatService
 def main():
     # 1. 创建基础设施层实例
     llm = QwenAdapter(
-        api_key=settings.llm_api_key,
+        api_key=settings.llm_api_key.get_secret_value(),
         base_url=settings.llm_base_url,
         model_name=settings.llm_model
     )

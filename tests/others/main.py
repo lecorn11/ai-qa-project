@@ -2,7 +2,7 @@ from openai import OpenAI
 from ai_qa.config.settings import settings
 
 client = OpenAI(
-    api_key = settings.llm_api_key,
+    api_key = settings.llm_api_key.get_secret_value(),
     base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 )
 

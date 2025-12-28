@@ -8,7 +8,7 @@ from ai_qa.config.settings import settings
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # JWT 配置
-SECRET_KEY = settings.jwt_secret_key
+SECRET_KEY = settings.jwt_secret_key.get_secret_value()
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 # 24 小时
 

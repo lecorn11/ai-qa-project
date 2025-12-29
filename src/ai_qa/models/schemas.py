@@ -1,5 +1,4 @@
-from turtle import update
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 
 
@@ -81,8 +80,7 @@ class KnowledgeBaseResponse(BaseModel):
     created_at: datetime | None = None
     updated_at: datetime | None = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class KnowledgeBaseListResponse(BaseModel):
     knowledge_bases: list[KnowledgeBaseResponse]

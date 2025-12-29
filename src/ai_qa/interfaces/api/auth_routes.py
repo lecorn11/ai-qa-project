@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from psycopg2 import IntegrityError
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr
 
 from ai_qa.domain.exceptions import ConflictException
 from ai_qa.interfaces.api.dependecnies import get_user_service, get_current_user
@@ -30,8 +30,7 @@ class UserResponse(BaseModel):
     nickname: str | None
     status: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # ============ 路由处理函数 ============
 @router.post("/register", response_model=UserResponse)

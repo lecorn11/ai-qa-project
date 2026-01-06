@@ -26,6 +26,19 @@ class LLMPort(ABC):
         """流式发送消息，逐步返回回复"""
         pass
 
+    @abstractmethod
+    def chat_with_tools(self, messages: list[Message], tools: list, system_prompt: str = None) -> Generator[str, None, None]:
+        """支持工具调用的对话
+        
+        Args:
+            messages: LangChain 消息列表
+            tools: 工具列表
+            system_prompt: 系统提示词
+        
+        Returns:
+            AIMessage
+        """
+        pass
 
 class ConversationMemoryPort(ABC):
     """对话记忆存储端口(抽象接口)

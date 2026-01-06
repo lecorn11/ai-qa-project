@@ -4,6 +4,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
+from ai_qa.application.agent_service import AgentService
 from ai_qa.application.knowledge_service import KnowledgeService
 from ai_qa.application.knowledge_base_service import KnowledgeBaseService
 from ai_qa.application.user_service import UserService
@@ -18,6 +19,9 @@ from ai_qa.infrastructure.memory.in_memory import InMemoryConversationMemory
 from ai_qa.application.chat_service import ChatService
 from ai_qa.domain.ports import EmbeddingPort, LLMPort, ConversationMemoryPort, VectorStorePort
 from ai_qa.infrastructure.memory.postgres_memory import PostgresConversationMemory
+from ai_qa.infrastructure.tools import calculator
+from ai_qa.infrastructure.tools.knowledge_search import create_knowledge_search_tool
+from ai_qa.infrastructure.tools.time_tool import get_current_time
 from ai_qa.infrastructure.vectorstore.faiss_store import FaissVectorStore
 from ai_qa.infrastructure.vectorstore.postgres_store import PostgresVectorStore
 
@@ -138,3 +142,29 @@ def get_current_user_optional(
     
     user_id = payload.get("user_id")
     return db.query(User).filter(User.id == user_id).first()
+
+def get_agent_service(
+        db: Session = Depends(get_db),
+        memory: ConversationMemoryPort = Depends(get_memory),
+        knowledge_service: KnowledgeService = Depends(get_knowledge_service),
+) -> AgentService:
+    """获取 Agent 服务"""
+
+    # 创建知识库搜索工具（动态注入 knowledge_service)
+    knowledge_search = create_knowledge_search_tool(knowledge_service)
+
+    # 组装工具列表
+    tools = [calculator, get_current_time, knowledge_search]
+
+    return AgentService(
+            llm=get_llm(),
+            memory=memory,
+            tools=tools,
+            system_prompt="""你是一个智能助手，可以使用以下工具来帮助回答问题
+- calculator：进行数学计算
+- get_current_time：获取当前日期和时间
+- search_knowledge_base：在知识库中搜索信息
+
+请根据用户的问题，判断是否需要使用工具，如果需要，先调用工具获取信息，再组织回答。"""
+        )
+    

@@ -10,6 +10,7 @@ from ai_qa.interfaces.api.middleware import logging_middleware
 from ai_qa.interfaces.api.routes import router
 from ai_qa.interfaces.api.knowledge_routes import router as knowledge_router
 from ai_qa.interfaces.api.auth_routes import router as auth_router
+from ai_qa.interfaces.api.agent_routes import router as agent_router
 
 # 配置日志
 setup_logging(debug=settings.debug)
@@ -78,6 +79,7 @@ app.middleware("http")(logging_middleware)
 app.include_router(router, prefix="/api/v1")
 app.include_router(knowledge_router, prefix="/api/v1", tags=["知识库"])
 app.include_router(auth_router, prefix="/api/v1", tags=["认证"])
+app.include_router(agent_router, prefix="/api/v1", tags=["Agent"])
 
 # 静态文件目录
 STATIC_DIR = Path(__file__).parent.parent / "web" / "static"

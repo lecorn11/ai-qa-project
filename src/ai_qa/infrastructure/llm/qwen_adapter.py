@@ -3,6 +3,7 @@ from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 
 from ai_qa.domain.entities import Message, MessageRole
+from ai_qa.infrastructure import llm
 from ai_qa.infrastructure.llm.base import BaseLLMAdapter
 
 
@@ -59,3 +60,19 @@ class QwenAdapter(BaseLLMAdapter):
         for chunk in self._stream_client.stream(langchain_messages):
             if chunk.content:
                 yield chunk.content
+    
+    def chat_with_tools(self, messages: list[Message], tools: list, system_prompt: str = None) -> Generator[str, None, None]:
+        """支持工具调用的对话"""
+        # 如果有系统提示词，添加到消息开头
+        if system_prompt:
+            messages = [SystemMessage(content=system_prompt)] + messages
+        
+        # 绑定工具到 LLM
+        if tools:
+            llm_with_tools = self._client.bind_tools(tools)
+        else:
+            llm_with_tools = self._client
+        
+        # 调用并返回完整的 AIMessage
+        response = llm_with_tools.invoke(messages)
+        return response

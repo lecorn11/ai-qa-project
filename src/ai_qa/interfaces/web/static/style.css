@@ -655,3 +655,114 @@ body {
     0%, 80%, 100% { transform: translateY(0); }
     40% { transform: translateY(-6px); }
 }
+
+/* ============ Agent 模式样式 ============ */
+
+/* 模式开关 */
+.mode-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #666;
+    cursor: pointer;
+}
+
+.mode-checkbox input {
+    cursor: pointer;
+}
+
+.options-divider {
+    width: 1px;
+    height: 16px;
+    background: #ddd;
+    margin: 0 4px;
+}
+
+/* 工具调用折叠区域 */
+.tool-calls {
+    margin-bottom: 8px;
+}
+
+.tool-calls-header {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background: #f0f4f8;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    color: #666;
+    transition: background 0.2s;
+}
+
+.tool-calls-header:hover {
+    background: #e4eaf0;
+}
+
+.tool-calls-toggle {
+    font-size: 10px;
+    transition: transform 0.2s;
+}
+
+.tool-calls-toggle.expanded {
+    transform: rotate(90deg);
+}
+
+.tool-calls-content {
+    display: none;
+    margin-top: 6px;
+    padding: 10px 12px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: 'Monaco', 'Menlo', monospace;
+}
+
+.tool-calls-content.expanded {
+    display: block;
+}
+
+.tool-call-item {
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px dashed #e0e0e0;
+}
+
+.tool-call-item:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.tool-call-name {
+    color: #5856D6;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.tool-call-input,
+.tool-call-output {
+    margin: 4px 0;  /* 统一上下间距 */
+    line-height: 1.4;
+}
+
+.tool-call-input {
+    color: #666;
+}
+
+.tool-call-output {
+    color: #28a745;
+}
+
+/* Agent 消息容器 */
+.message.assistant .message-content {
+    /* 用于包裹工具调用和回答内容 */
+}
+
+/* 回答文本 */
+.message-text {
+    line-height: 1.5;
+    white-space: pre-wrap;
+}

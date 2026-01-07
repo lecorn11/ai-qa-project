@@ -515,7 +515,8 @@ async function sendMessage() {
             return;
         }
     }
-    
+
+    const useAgent = document.getElementById('useAgent').checked;
     const useKnowledge = document.getElementById('useKnowledge').checked;
     const kbId = document.getElementById('kbSelect').value;
     
@@ -533,58 +534,12 @@ async function sendMessage() {
     const typingId = showTypingIndicator();
     
     try {
-        // 构建请求体
-        const body = { 
-            content: message, 
-            use_knowledge: useKnowledge
-        };
-        if (useKnowledge && kbId) {
-            body.knowledge_base_id = kbId;
-        }
-        
-        const response = await fetch(`${API_BASE}/conversations/${currentConversationId}/messages/stream`, {
-            method: 'POST',
-            headers: authHeaders(),
-            body: JSON.stringify(body)
-        });
-        
-        // 移除加载动画
-        removeTypingIndicator(typingId);
-        
-        // 处理流式响应
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let assistantMessage = '';
-        let messageElement = null;
-        
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            
-            const chunk = decoder.decode(value);
-            const lines = chunk.split('\n\n');
-            
-            for (const line of lines) {
-                if (line.startsWith('data: ')) {
-                    const rawData = line.slice(6);
-                    if (rawData === '[DONE]') continue;
-                    
-                    try {
-                        const data = JSON.parse(rawData);
-                        assistantMessage += data;
-                    } catch (e) {
-                        assistantMessage += rawData;
-                    }
-                    
-                    if (!messageElement) {
-                        messageElement = appendMessage('assistant', assistantMessage);
-                    } else {
-                        messageElement.textContent = assistantMessage;
-                    }
-                    
-                    scrollToBottom();
-                }
-            }
+        if (useAgent) {
+            // Agent 模式
+            await sendAgentMessage(message, typingId);
+        } else {
+            // 普通模式 / 知识库模式
+            await sendNormalMessage(message, useKnowledge, kbId, typingId);
         }
         
         // 刷新会话列表（更新标题）
@@ -594,6 +549,145 @@ async function sendMessage() {
         console.error('发送失败:', error);
         removeTypingIndicator(typingId);
         appendMessage('assistant', '抱歉，发生了错误，请重试。');
+    }
+}
+
+async function sendNormalMessage(message, useKnowledge, kbId, typingId) {
+    // 构建请求体
+    const body = { 
+        content: message, 
+        use_knowledge: useKnowledge
+    };
+    if (useKnowledge && kbId) {
+        body.knowledge_base_id = kbId;
+    }
+    
+    const response = await fetch(`${API_BASE}/conversations/${currentConversationId}/messages/stream`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify(body)
+    });
+    
+    // 移除加载动画
+    removeTypingIndicator(typingId);
+    
+    // 处理流式响应
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let assistantMessage = '';
+    let messageElement = null;
+    
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n\n');
+        
+        for (const line of lines) {
+            if (line.startsWith('data: ')) {
+                const rawData = line.slice(6);
+                if (rawData === '[DONE]') continue;
+                
+                try {
+                    const data = JSON.parse(rawData);
+                    assistantMessage += data;
+                } catch (e) {
+                    assistantMessage += rawData;
+                }
+                
+                if (!messageElement) {
+                    messageElement = appendMessage('assistant', assistantMessage);
+                } else {
+                    messageElement.textContent = assistantMessage;
+                }
+                
+                scrollToBottom();
+            }
+        }
+    }
+}
+
+async function sendAgentMessage(message, typingId) {
+    const body = {
+        content: message,
+        session_id: currentConversationId
+    };
+    
+    const response = await fetch(`${API_BASE}/agent/chat/stream`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify(body)
+    });
+    
+    // 移除加载动画
+    removeTypingIndicator(typingId);
+    
+    // 处理流式响应
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    
+    let toolCalls = [];        // 收集工具调用
+    let answerContent = '';    // 最终回答
+    let messageElement = null; // 消息 DOM 元素
+    
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n\n');
+        
+        for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            
+            const rawData = line.slice(6).trim();
+            if (!rawData) continue;
+            
+            try {
+                const event = JSON.parse(rawData);
+                
+                switch (event.type) {
+                    case 'tool_start':
+                        // 开始调用工具
+                        toolCalls.push({
+                            name: event.tool,
+                            input: event.input,
+                            output: null
+                        });
+                        break;
+                        
+                    case 'tool_result':
+                        // 工具返回结果
+                        const lastTool = toolCalls[toolCalls.length - 1];
+                        if (lastTool) {
+                            lastTool.output = event.output;
+                        }
+                        break;
+                        
+                    case 'answer':
+                        console.log('answer event:', JSON.stringify(event.content));
+
+                        // 流式回答
+                        answerContent += event.content;
+                        
+                        // 创建或更新消息元素
+                        if (!messageElement) {
+                            messageElement = appendAgentMessage(toolCalls, answerContent);
+                        } else {
+                            updateAgentMessage(messageElement, toolCalls, answerContent);
+                        }
+                        scrollToBottom();
+                        break;
+                        
+                    case 'done':
+                        // 完成
+                        break;
+                }
+            } catch (e) {
+                console.error('解析 Agent 事件失败:', e, rawData);
+            }
+        }
     }
 }
 
@@ -642,4 +736,72 @@ function toggleSection(sectionId) {
     
     section.classList.toggle('collapsed');
     icon.classList.toggle('collapsed');
+}
+
+function appendAgentMessage(toolCalls, content) {
+    const container = document.getElementById('chatContainer');
+    const div = document.createElement('div');
+    div.className = 'message assistant';
+    
+    div.innerHTML = buildAgentMessageHTML(toolCalls, content);
+    
+    container.appendChild(div);
+    scrollToBottom();
+    return div;
+}
+
+function updateAgentMessage(element, toolCalls, content) {
+    element.innerHTML = buildAgentMessageHTML(toolCalls, content);
+}
+
+function buildAgentMessageHTML(toolCalls, answerContent) {
+    let html = '';
+    
+    if (toolCalls.length > 0) {
+        let toolsHtml = toolCalls.map(tool => 
+            `<div class="tool-call-item">` +
+            `<div class="tool-call-name">📌 ${formatToolName(tool.name)}</div>` +
+            `<div class="tool-call-input">输入：${escapeHtml(tool.input || '')}</div>` +
+            `<div class="tool-call-output">结果：${escapeHtml(tool.output || '...')}</div>` +
+            `</div>`
+        ).join('');
+        
+        html += `<div class="tool-calls">` +
+            `<div class="tool-calls-header" onclick="toggleToolCalls(this)">` +
+            `<span class="tool-calls-toggle">▶</span>` +
+            `<span>🔧 使用了 ${toolCalls.length} 个工具</span>` +
+            `</div>` +
+            `<div class="tool-calls-content">${toolsHtml}</div>` +
+            `</div>`;
+    }
+    
+    if (answerContent) {
+        html += `<div class="message-text">${escapeHtml(answerContent)}</div>`;
+    }
+    
+    return html;
+}
+
+function toggleToolCalls(header) {
+    const toggle = header.querySelector('.tool-calls-toggle');
+    const content = header.nextElementSibling;
+    
+    toggle.classList.toggle('expanded');
+    content.classList.toggle('expanded');
+}
+
+function formatToolName(name) {
+    const nameMap = {
+        'calculator': '计算器',
+        'get_current_time': '获取时间',
+        'search_knowledge_base': '知识库搜索'
+    };
+    return nameMap[name] || name;
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }

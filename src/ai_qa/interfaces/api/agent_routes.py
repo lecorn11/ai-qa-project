@@ -1,6 +1,7 @@
 
 
 from fastapi import APIRouter, Depends
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel,Field
 
 from ai_qa.application.agent_service import AgentService
@@ -51,4 +52,44 @@ async def agent_chat(
     return AgentChatResponse(
         content=response,
         session_id=request.session_id
+    )
+
+@router.post(
+    "/chat/stream",
+    summary="Agent 对话（流式）",
+    responses={
+        200:{
+            "description": "SSE 流式响应",
+            "content": {"text/event-stream":{}}
+        },
+        401:{"description": "未登录或 Token 无效"}
+    }
+)
+async def agent_chat_stream(
+    request: AgentChatRequest,
+    current_user: User = Depends(get_current_user),
+    agent_service: AgentService = Depends(get_agent_service)
+):
+    """
+    Agent 模式对话（流式）, AI 可自主调用工具，
+
+    支持的工具：
+    - **计算器**：数学计算
+    - **时间**：获取当前日期时间
+    - **知识库搜索**：检索知识库内容
+
+    返回 SSE 事件流：
+    - `tool_start`: 开始调用工具
+    - `tool_result`: 工具返回结果
+    - `answer`: 最终回答（逐字）
+    - `done`: 完成
+    """
+
+    return StreamingResponse(
+        agent_service.chat_stream(
+            session_id=request.session_id,
+            user_input=request.content,
+            user_id=current_user.id
+        ),
+        media_type="text/event-stream"
     )

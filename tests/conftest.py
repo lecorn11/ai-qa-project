@@ -22,3 +22,11 @@ def mock_memory():
 def mock_db():
     """模拟数据库 Session"""
     return MagicMock()
+
+@pytest.fixture
+def mock_tool():
+    """模拟工具"""
+    tool = MagicMock()
+    tool.name = "mock_calculator"
+    tool.invoke.return_value = "42"
+    return tool

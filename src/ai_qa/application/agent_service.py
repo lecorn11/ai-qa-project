@@ -1,7 +1,9 @@
 
 
 
+import json
 import logging
+from typing import Generator
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
 from ai_qa.domain.entities import Conversation, MessageRole
 from ai_qa.domain.ports import ConversationMemoryPort, LLMPort
@@ -40,7 +42,7 @@ class AgentService:
         """
         
         logger.info(
-            f"工具调用消息对话处理开始 session_id={session_id} user_id={user_id} user_input={user_input}"
+            f"Agent 对话处理开始 session_id={session_id} user_id={user_id} user_input={user_input}"
         )
 
         # 1. 获取对话历史
@@ -58,7 +60,7 @@ class AgentService:
         self._memory.save_conversation(conversation)
 
         logger.info(
-            f"工具调用消息对话处理完成 session_id={session_id} user_id={user_id} ai_response={final_response}"
+            f"Agent 对话处理完成 session_id={session_id} user_id={user_id} ai_response={final_response}"
         )
 
         return final_response
@@ -102,6 +104,7 @@ class AgentService:
             if not response.tool_calls:
                 return response.content
         
+            # 有工具调用，添加 AI 响应到消息历史
             messages.append(response)
 
             # 执行工具调用
@@ -122,4 +125,127 @@ class AgentService:
             
         # 超过最大迭代次数
         return "抱歉，处理过程过于复杂，请简化您的问题。"
+    
+
+    def chat_stream(
+        self,
+        session_id: str,
+        user_input: str,
+        user_id: str = None
+    ) -> Generator[str, None, None]:
+        """流式处理用户输出，返回 SSE 格式的消息流
+        
+        消息类型：
+        - tool_start: 开始调用工具
+        - tool_result: 工具返回结果  
+        - answer: 最终回答（流式）
+        - done: 完成
+        """
+        logger.info(
+            f"Agent 流式对话开始 session_id={session_id} user_id={user_id}"
+        )
+
+        # 1. 获取对话历史
+        conversation = self._memory.get_conversation(session_id, user_id=user_id)
+
+        # 2. 构建消息列表
+        messages = self._build_messages(conversation, user_input)
+
+        # 3. Agent 循环调用工具直到有最终回答
+        full_response = ""
+        
+        for event in self._agent_loop_stream(messages):
+            yield event
+
+            # 收集最终回答内容（用于保存历史）
+            try:
+                event_data = event.replace("data: ", "").strip()
+                if event_data:
+                    data = json.loads(event_data)
+                    if data.get("type") == "answer":
+                        full_response += data.get("content","")
+            except:
+                pass
+        
+
+
+        # 4. 保存历史对话
+        conversation.add_message(MessageRole.USER, user_input)
+        if full_response:
+            conversation.add_message(MessageRole.ASSISTANT, full_response)
+        self._memory.save_conversation(conversation)
+
+        logger.info(
+            f"Agent 流式对话完成 session_id={session_id} user_id={user_id} ai_response={full_response}"
+        )
+    
+    def _agent_loop_stream(
+        self,
+        messages: list,
+        max_iterations: int = 10
+    ) -> Generator[str, None, None]:
+        """Agent 循环编排（流式版本）"""
+
+        for _ in range(max_iterations):
+            # 调用 LLM
+            response = self._llm.chat_with_tools(
+                messages=messages,
+                tools=self._tools,
+                system_prompt=self._system_prompt
+            )
+
+            # 如果没有工具调用，返回最终回答
+            if not response.tool_calls:
+                for chunk in self._llm.chat_stream(messages, self._system_prompt):
+                    yield self._sse_event({"type":"answer","content":chunk})
+                yield self._sse_event({"type": "done"})
+                return
+        
+            # 有工具调用，添加 AI 响应到消息历史
+            messages.append(response)
+
+            # 执行工具调用
+            for tool_call in response.tool_calls:
+                tool_name = tool_call["name"]
+                tool_args = tool_call["args"]
+                tool_id = tool_call["id"]
+            
+                # 发送 tool_start 事件
+                yield self._sse_event({
+                    "type": "tool_start",
+                    "tool": tool_name,
+                    "input": json.dumps(tool_args, ensure_ascii=False)
+                })
+
+                # 查找并执行工具
+                if tool_name in self._tool_map:
+                    tool_func = self._tool_map[tool_name]
+                    result = tool_func.invoke(tool_args)
+                else:
+                    result = f"错误：未知工具{tool_name}"
+                
+                # 发送 tool_result 事件
+                yield self._sse_event({
+                    "type": "tool_result",
+                    "tool": tool_name,
+                    "output": str(result)
+                })
+
+                # 把工具结果加入到消息历史
+                messages.append(ToolMessage(content=str(result), tool_call_id = tool_id))
+            
+        # 超过最大迭代次数
+        yield self._sse_event({
+            "type": "answer",
+            "content": "抱歉，处理过程过于复杂，请简化您的问题。"
+        })
+        yield self._sse_event({"type":"done"})
+    
+    def _sse_event(self, data: dict) -> str:
+        """格式化为 SSE 事件"""
+        return f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
+
+        
+
+
 

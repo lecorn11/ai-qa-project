@@ -53,9 +53,19 @@ class QwenAdapter(BaseLLMAdapter):
         response = self._client.invoke(langchain_messages)
         return response.content
     
-    def chat_stream(self, messages: list[Message], system_prompt: str = None) -> Generator[str, None, None]:
-        """流式发送消息，逐步返回回复"""
-        langchain_messages = self._conver_message(messages, system_prompt)
+    def chat_stream(self, messages: list, system_prompt: str = None) -> Generator[str, None, None]:
+        """流式发送消息，逐步返回回复
+        
+        支持两种消息格式：
+        - 领域实体格式: list[Message]
+        - LangChain 格式: list[BaseMessage] 
+        """
+        if messages and isinstance(messages[0], Message):
+            langchain_messages = self._conver_message(messages, system_prompt)
+        else:
+            langchain_messages = messages
+            if system_prompt:
+                langchain_messages = [SystemMessage(content=system_prompt)] + messages
 
         for chunk in self._stream_client.stream(langchain_messages):
             if chunk.content:
@@ -76,3 +86,18 @@ class QwenAdapter(BaseLLMAdapter):
         # 调用并返回完整的 AIMessage
         response = llm_with_tools.invoke(messages)
         return response
+
+    # def chat_stream_langchain(
+    #     self, 
+    #     messages: list, 
+    #     system_prompt: str = None
+    # ) -> Generator[str, None, None]:
+    #     """流式对话（接受 LangChain 消息格式）"""
+        
+    #     # 如果有系统提示词，添加到开头
+    #     if system_prompt:
+    #         messages = [SystemMessage(content=system_prompt)] + messages
+        
+    #     for chunk in self._stream_client.stream(messages):
+    #         if chunk.content:
+    #             yield chunk.content

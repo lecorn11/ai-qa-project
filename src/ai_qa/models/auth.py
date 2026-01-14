@@ -3,15 +3,15 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class RegisterRequest(BaseModel):
     """用户注册请求"""
-    username: str = Field(..., min_length=2, max_length=50, description="用户名", examples=["alice"])
-    password: str = Field(..., min_length=6, description="密码", examples=["123456"])
+    username: str = Field(..., min_length=2, max_length=50, description="用户名", examples=["admin"])
+    password: str = Field(..., min_length=6, description="密码", examples=["admin"])
     email: str | None = Field(None, description="邮箱（可选）", examples=["alice@example.com"])
 
 
 class LoginRequest(BaseModel):
     """用户登录请求"""
-    username: str = Field(..., description="用户名", examples=["alice"])
-    password: str = Field(..., description="密码", examples=["123456"])
+    username: str = Field(..., description="用户名", examples=["admin"])
+    password: str = Field(..., description="密码", examples=["admin"])
 
 
 class TokenResponse(BaseModel):

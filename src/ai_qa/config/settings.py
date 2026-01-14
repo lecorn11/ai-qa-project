@@ -29,6 +29,12 @@ class Settings(BaseSettings):
         alias="UPLOAD_DIR"
     )
 
+    # MCP 配置文件路径
+    mcp_config_path: str = Field(
+        default="./mcp_servers.json",
+        alias="MCP_CONFIG_PATH"
+    )
+
     # 数据库配置
     database_url: SecretStr = Field(
         default="postgresql://ai_qa_user:ai_qa_password@localhost:5432/ai_qa_db",

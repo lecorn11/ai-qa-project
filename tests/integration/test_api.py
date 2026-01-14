@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 from fastapi.testclient import TestClient
 
 from ai_qa.interfaces.api.app import app
-from ai_qa.interfaces.api.dependecnies import get_db, get_current_user
+from ai_qa.interfaces.api.dependencies import get_db, get_current_user
 from ai_qa.infrastructure.database.models import User
 
 

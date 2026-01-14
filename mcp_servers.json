@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"]
+    },
+    "knowledge": {
+      "command": "python",
+      "args": ["-m", "ai_qa.infrastructure.mcp.server"],
+      "cwd": ".",
+      "env": {}
+    }
+  }
+}

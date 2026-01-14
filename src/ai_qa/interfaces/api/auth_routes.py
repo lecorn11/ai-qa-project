@@ -3,7 +3,7 @@ from psycopg2 import IntegrityError
 from pydantic import BaseModel, ConfigDict, EmailStr
 
 from ai_qa.domain.exceptions import ConflictException
-from ai_qa.interfaces.api.dependecnies import get_user_service, get_current_user
+from ai_qa.interfaces.api.dependencies import get_user_service, get_current_user
 from ai_qa.infrastructure.database.models import User
 from ai_qa.application.user_service import UserService
 from ai_qa.models import RegisterRequest, LoginRequest, TokenResponse, UserResponse

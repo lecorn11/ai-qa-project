@@ -5,7 +5,7 @@ from ai_qa.application.knowledge_service import KnowledgeService
 from ai_qa.domain.exceptions import NotFoundException, ValidationException
 from ai_qa.infrastructure.database.models import User
 from ai_qa.infrastructure.document.pdf_reader import extract_text_from_pdf
-from ai_qa.interfaces.api.dependecnies import get_current_user, get_knowledge_base_service, get_knowledge_service
+from ai_qa.interfaces.api.dependencies import get_current_user, get_knowledge_base_service, get_knowledge_service
 from ai_qa.models import (
     CreateKnowledgeBaseRequest,
     UpdateKnowledgeBaseRequest,

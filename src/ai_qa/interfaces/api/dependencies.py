@@ -1,6 +1,5 @@
 from functools import lru_cache
-from operator import ge
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
@@ -15,14 +14,13 @@ from ai_qa.infrastructure.database.connection import get_db
 from ai_qa.infrastructure.database.models import User
 from ai_qa.infrastructure.embedding.dashscope_embedding import DashScopeEmbeddingAdapter
 from ai_qa.infrastructure.llm.qwen_adapter import QwenAdapter
-from ai_qa.infrastructure.memory.in_memory import InMemoryConversationMemory
+from ai_qa.infrastructure.mcp.client import MCPClientService
 from ai_qa.application.chat_service import ChatService
 from ai_qa.domain.ports import EmbeddingPort, LLMPort, ConversationMemoryPort, VectorStorePort
 from ai_qa.infrastructure.memory.postgres_memory import PostgresConversationMemory
 from ai_qa.infrastructure.tools import calculator
 from ai_qa.infrastructure.tools.knowledge_search import create_knowledge_search_tool
 from ai_qa.infrastructure.tools.time_tool import get_current_time
-from ai_qa.infrastructure.vectorstore.faiss_store import FaissVectorStore
 from ai_qa.infrastructure.vectorstore.postgres_store import PostgresVectorStore
 
 # ============ 配置 ============
@@ -50,6 +48,14 @@ def get_embedding() -> EmbeddingPort:
     return DashScopeEmbeddingAdapter(
         model_name=settings.embedding_model_name,
         api_key=settings.llm_api_key.get_secret_value()
+    )
+
+@lru_cache
+def get_mcp_client() -> MCPClientService:
+    """获取 MCP客户端服务 实例（单例）"""
+    settings = get_settings()
+    return MCPClientService(
+        config_path=settings.mcp_config_path
     )
 
 # ============ 数据库相关（每次请求）============

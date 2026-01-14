@@ -8,7 +8,7 @@ from ai_qa.infrastructure.database.models import User
 from ai_qa.application.chat_service import ChatService
 from ai_qa.domain.ports import ConversationMemoryPort
 from ai_qa.domain.exceptions import NotFoundException
-from ai_qa.interfaces.api.dependecnies import (
+from ai_qa.interfaces.api.dependencies import (
     get_chat_service,
     get_knowledge_service,
     get_memory,

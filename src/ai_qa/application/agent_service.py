@@ -3,7 +3,7 @@
 
 import json
 import logging
-from typing import Generator
+from typing import AsyncGenerator, Generator
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
 from ai_qa.domain.entities import Conversation, MessageRole
 from ai_qa.domain.ports import ConversationMemoryPort, LLMPort
@@ -28,7 +28,7 @@ class AgentService:
         # 构建工具映射
         self._tool_map = {tool.name: tool for tool in self._tools}
 
-    def chat(self, session_id: str, user_input: str, user_id: str = None) -> str:
+    async def chat(self, session_id: str, user_input: str, user_id: str = None, extra_tools: list = None) -> str:
         """
         处理用户输入，自动决定是否调用工具
         
@@ -52,7 +52,7 @@ class AgentService:
         messages = self._build_messages(conversation, user_input)
 
         # 3. Agent 循环调用工具直到有最终回答
-        final_response = self._agent_loop(messages)
+        final_response = await self._agent_loop(messages,extra_tools)
 
         # 4. 保存历史对话
         conversation.add_message(MessageRole.USER, user_input)
@@ -81,7 +81,7 @@ class AgentService:
 
         return messages
     
-    def _agent_loop(self, messages: list, max_iterations: int = 10) -> str:
+    async def _agent_loop(self, messages: list, extra_tools: list = None ,max_iterations: int = 10) -> str:
         """
         Agent 循环: 不断调用 LLM 直到不需要工具
 
@@ -92,11 +92,15 @@ class AgentService:
         Returns:
             最终回复内容
         """
+
+        # 整合工具
+        all_tools, tool_map = self._get_tools_and_map(extra_tools)
+
         for _ in range(max_iterations):
             # 调用 LLM
             response = self._llm.chat_with_tools(
                 messages=messages,
-                tools=self._tools,
+                tools=all_tools,
                 system_prompt=self._system_prompt
             )
 
@@ -114,9 +118,9 @@ class AgentService:
                 tool_id = tool_call["id"]
             
                 # 查找并执行工具
-                if tool_name in self._tool_map:
-                    tool_func = self._tool_map[tool_name]
-                    result = tool_func.invoke(tool_args)
+                if tool_name in tool_map:
+                    tool_func = tool_map[tool_name]
+                    result = await tool_func.ainvoke(tool_args)
                 else:
                     result = f"错误：未知工具{tool_name}"
                 
@@ -127,12 +131,13 @@ class AgentService:
         return "抱歉，处理过程过于复杂，请简化您的问题。"
     
 
-    def chat_stream(
+    async def chat_stream(
         self,
         session_id: str,
         user_input: str,
-        user_id: str = None
-    ) -> Generator[str, None, None]:
+        user_id: str = None,
+        extra_tools: list = None
+    ) -> AsyncGenerator[str, None]:
         """流式处理用户输出，返回 SSE 格式的消息流
         
         消息类型：
@@ -154,7 +159,7 @@ class AgentService:
         # 3. Agent 循环调用工具直到有最终回答
         full_response = ""
         
-        for event in self._agent_loop_stream(messages):
+        async for event in self._agent_loop_stream(messages,extra_tools):
             yield event
 
             # 收集最终回答内容（用于保存历史）
@@ -179,18 +184,22 @@ class AgentService:
             f"Agent 流式对话完成 session_id={session_id} user_id={user_id} ai_response={full_response}"
         )
     
-    def _agent_loop_stream(
+    async def _agent_loop_stream(
         self,
         messages: list,
+        extra_tools: list = None,
         max_iterations: int = 10
-    ) -> Generator[str, None, None]:
+    ) -> AsyncGenerator[str, None]:
         """Agent 循环编排（流式版本）"""
+
+        all_tools, tool_map = self._get_tools_and_map(extra_tools)
+
 
         for _ in range(max_iterations):
             # 调用 LLM
             response = self._llm.chat_with_tools(
                 messages=messages,
-                tools=self._tools,
+                tools=all_tools,
                 system_prompt=self._system_prompt
             )
 
@@ -218,9 +227,9 @@ class AgentService:
                 })
 
                 # 查找并执行工具
-                if tool_name in self._tool_map:
-                    tool_func = self._tool_map[tool_name]
-                    result = tool_func.invoke(tool_args)
+                if tool_name in tool_map:
+                    tool_func = tool_map[tool_name]
+                    result = await tool_func.ainvoke(tool_args)
                 else:
                     result = f"错误：未知工具{tool_name}"
                 
@@ -244,8 +253,9 @@ class AgentService:
     def _sse_event(self, data: dict) -> str:
         """格式化为 SSE 事件"""
         return f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
-
-        
-
-
-
+    
+    def _get_tools_and_map(self, extra_tools=None):
+        """合并内置工具和额外工具，返回工具列表和映射"""
+        all_tools = self._tools + (extra_tools or [])
+        tool_map = {tool.name: tool for tool in all_tools}
+        return all_tools, tool_map

@@ -7,6 +7,11 @@ let currentConversationId = null;
 let currentKnowledgeBaseId = null;
 let knowledgeBases = [];
 let conversations = [];
+let mcpServers = [];
+let mcpSettings = {
+    enabled: false,
+    selected_servers: []
+};
 
 // ============ 初始化 ============
 document.addEventListener('DOMContentLoaded', () => {
@@ -143,10 +148,11 @@ function showApp() {
     document.getElementById('authContainer').style.display = 'none';
     document.getElementById('appContainer').style.display = 'flex';
     document.getElementById('currentUser').textContent = currentUser.username;
-    
+
     // 加载数据
     loadKnowledgeBases();
     loadConversations();
+    loadMcpSettings();
 }
 
 // ============ API 请求工具 ============
@@ -613,7 +619,12 @@ async function sendAgentMessage(message, typingId) {
         content: message,
         session_id: currentConversationId
     };
-    
+
+    // 如果启用了 MCP，自动带上选中的 servers
+    if (mcpSettings.enabled && mcpSettings.selected_servers.length > 0) {
+        body.mcp_servers = mcpSettings.selected_servers;
+    }
+
     const response = await fetch(`${API_BASE}/agent/chat/stream`, {
         method: 'POST',
         headers: authHeaders(),
@@ -804,4 +815,204 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+// ============ MCP 工具管理 ============
+async function loadMcpSettings() {
+    try {
+        const response = await fetch(`${API_BASE}/mcp/settings`, {
+            headers: authHeaders()
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            // 后端返回 mcp_enabled 和 servers，转换为前端格式
+            mcpSettings = {
+                enabled: data.mcp_enabled,
+                selected_servers: data.servers
+            };
+            updateMcpUI();
+        }
+    } catch (error) {
+        console.error('加载 MCP 设置失败:', error);
+    }
+}
+
+async function loadMcpServers() {
+    try {
+        const response = await fetch(`${API_BASE}/mcp/servers`, {
+            headers: authHeaders()
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            mcpServers = data.servers;
+            renderMcpServers();
+        }
+    } catch (error) {
+        console.error('加载 MCP 服务列表失败:', error);
+    }
+}
+
+function updateMcpUI() {
+    const enabled = mcpSettings.enabled;
+
+    // 更新侧边栏开关
+    document.getElementById('mcpEnabled').checked = enabled;
+
+    // 更新状态文本
+    const statusElement = document.getElementById('mcpStatus');
+    const statusText = statusElement.querySelector('.mcp-status-text');
+
+    if (enabled && mcpSettings.selected_servers && mcpSettings.selected_servers.length > 0) {
+        statusElement.classList.add('enabled');
+        statusText.textContent = `已启用 ${mcpSettings.selected_servers.length} 个服务`;
+    } else if (enabled) {
+        statusElement.classList.add('enabled');
+        statusText.textContent = '已启用，未选择服务';
+    } else {
+        statusElement.classList.remove('enabled');
+        statusText.textContent = '未启用';
+    }
+}
+
+async function toggleMcpEnabled(event) {
+    const enabled = event.target.checked;
+
+    try {
+        const response = await fetch(`${API_BASE}/mcp/settings`, {
+            method: 'PUT',
+            headers: authHeaders(),
+            body: JSON.stringify({
+                mcp_enabled: enabled,
+                servers: mcpSettings.selected_servers
+            })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            mcpSettings = {
+                enabled: data.mcp_enabled,
+                selected_servers: data.servers
+            };
+            updateMcpUI();
+        } else {
+            const data = await response.json();
+            alert(data.detail || '保存失败');
+            event.target.checked = !enabled;
+        }
+    } catch (error) {
+        console.error('保存 MCP 设置失败:', error);
+        alert('保存失败，请重试');
+        event.target.checked = !enabled;
+    }
+}
+
+function showMcpSettingsModal() {
+    document.getElementById('mcpSettingsModal').style.display = 'flex';
+    document.getElementById('mcpEnabledModal').checked = mcpSettings.enabled;
+    loadMcpServers();
+}
+
+function hideMcpSettingsModal() {
+    document.getElementById('mcpSettingsModal').style.display = 'none';
+}
+
+async function updateMcpEnabledInModal() {
+    const enabled = document.getElementById('mcpEnabledModal').checked;
+
+    try {
+        const response = await fetch(`${API_BASE}/mcp/settings`, {
+            method: 'PUT',
+            headers: authHeaders(),
+            body: JSON.stringify({
+                mcp_enabled: enabled,
+                servers: mcpSettings.selected_servers
+            })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            mcpSettings = {
+                enabled: data.mcp_enabled,
+                selected_servers: data.servers
+            };
+            updateMcpUI();
+        } else {
+            const data = await response.json();
+            alert(data.detail || '保存失败');
+            document.getElementById('mcpEnabledModal').checked = !enabled;
+        }
+    } catch (error) {
+        console.error('保存 MCP 设置失败:', error);
+        alert('保存失败，请重试');
+        document.getElementById('mcpEnabledModal').checked = !enabled;
+    }
+}
+
+function renderMcpServers() {
+    const container = document.getElementById('mcpServersList');
+
+    if (mcpServers.length === 0) {
+        container.innerHTML = '<div class="empty-state">暂无可用的 MCP 服务</div>';
+        return;
+    }
+
+    container.innerHTML = mcpServers.map(server => {
+        const isSelected = mcpSettings.selected_servers.includes(server.name);
+        return `
+            <div class="mcp-server-item">
+                <div class="mcp-server-header">
+                    <div class="mcp-server-name">
+                        <input type="checkbox"
+                               class="mcp-server-checkbox"
+                               ${isSelected ? 'checked' : ''}
+                               onchange="toggleMcpServer('${server.name}', this.checked)">
+                        <span>${server.name}</span>
+                    </div>
+                </div>
+                <div class="mcp-server-desc">${server.description || '无描述'}</div>
+            </div>
+        `;
+    }).join('');
+}
+
+async function toggleMcpServer(serverName, isSelected) {
+    let newSelectedServers = [...mcpSettings.selected_servers];
+
+    if (isSelected) {
+        if (!newSelectedServers.includes(serverName)) {
+            newSelectedServers.push(serverName);
+        }
+    } else {
+        newSelectedServers = newSelectedServers.filter(s => s !== serverName);
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}/mcp/settings`, {
+            method: 'PUT',
+            headers: authHeaders(),
+            body: JSON.stringify({
+                mcp_enabled: mcpSettings.enabled,
+                servers: newSelectedServers
+            })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            mcpSettings = {
+                enabled: data.mcp_enabled,
+                selected_servers: data.servers
+            };
+            updateMcpUI();
+        } else {
+            const data = await response.json();
+            alert(data.detail || '保存失败');
+            renderMcpServers();
+        }
+    } catch (error) {
+        console.error('保存 MCP 服务选择失败:', error);
+        alert('保存失败，请重试');
+        renderMcpServers();
+    }
 }

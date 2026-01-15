@@ -62,12 +62,13 @@ class MCPClientService:
         for name in names:
             # 跳过已连接
             if name in self._connections:
-                logger.debug(f"Server '{name}' 已连接，跳过")
+                logger.debug(f"Server '{name}' 已连接，使用现有连接")
                 results[name] = self._connections[name].tools
-            
+                continue
+
             # 跳过不存在配置的情况
             if name not in self._available_configs:
-                logger.warning(f"未找到 Server 配置: {name}, 可用配置: {list(self._available_configs.keys())()}")
+                logger.warning(f"未找到 Server 配置: {name}, 可用配置: {list(self._available_configs.keys())}")
                 continue
 
             # 连接
@@ -75,9 +76,9 @@ class MCPClientService:
                 tools = await self.connect(self._available_configs[name])
                 results[name] = tools
             except Exception as e:
-                logger.error(f"连接 Server '{name} 失败: {e}")
-            
-            return results
+                logger.error(f"连接 Server '{name}' 失败: {e}")
+
+        return results
 
     async def connect(self, config: MCPServerConfig) -> list[MCPTool]:
         """连接到 MCP Server

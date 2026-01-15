@@ -75,6 +75,24 @@
                     </div>
                 </div>
 
+                <!-- MCP 工具管理 -->
+                <div class="sidebar-section">
+                    <div class="section-header">
+                        <span>🔧 MCP 工具</span>
+                        <label class="mcp-switch" onclick="event.stopPropagation()">
+                            <input type="checkbox" id="mcpEnabled" onchange="toggleMcpEnabled(event)">
+                        </label>
+                    </div>
+                    <div class="section-content mcp-content">
+                        <button class="settings-btn" onclick="showMcpSettingsModal()">
+                            ⚙️ 设置
+                        </button>
+                        <div class="mcp-status" id="mcpStatus">
+                            <span class="mcp-status-text">未启用</span>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- 会话管理 -->
                 <div class="sidebar-section">
                     <div class="section-header" onclick="toggleSection('convSection')">
@@ -174,7 +192,7 @@
                         <span class="stat-label">文档块数</span>
                     </div>
                 </div>
-                
+
                 <!-- 文件上传 -->
                 <div class="upload-section">
                     <h4>上传文档</h4>
@@ -188,9 +206,9 @@
                             📤 上传
                         </button>
                     </div>
-                    
+
                     <div class="divider">或粘贴文本</div>
-                    
+
                     <textarea id="docContent" placeholder="粘贴文档内容..."></textarea>
                     <input type="text" id="docTitle" placeholder="文档标题（可选）">
                     <button class="btn-primary full-width" onclick="uploadText()">📤 添加文本</button>
@@ -198,6 +216,34 @@
             </div>
             <div class="modal-footer">
                 <button class="btn-danger" onclick="deleteKnowledgeBase()">🗑️ 删除知识库</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== MCP 设置弹窗 ========== -->
+    <div class="modal" id="mcpSettingsModal" style="display: none;">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <span>🔧 MCP 工具设置</span>
+                <button class="close-btn" onclick="hideMcpSettingsModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="mcp-settings-section">
+                    <h4>启用 MCP 工具</h4>
+                    <label class="mcp-toggle-label">
+                        <input type="checkbox" id="mcpEnabledModal" onchange="updateMcpEnabledInModal()">
+                        <span>开启后，Agent 模式可使用外部 MCP 工具</span>
+                    </label>
+                </div>
+
+                <div class="divider">可用的 MCP 服务</div>
+
+                <div class="mcp-servers-list" id="mcpServersList">
+                    <div class="empty-state">加载中...</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="hideMcpSettingsModal()">关闭</button>
             </div>
         </div>
     </div>

@@ -1,5 +1,5 @@
 from .connection import get_db, engine, SessionLocal
-from .models import Base, User, KnowledgeBase, Document, DocumentChunk, Conversation, Message
+from .models import Base, User, KnowledgeBase, Document, DocumentChunk, Conversation, Message, UserMcpServer
 
 __all__ = [
     "get_db",
@@ -12,4 +12,5 @@ __all__ = [
     "DocumentChunk",
     "Conversation",
     "Message",
+    "UserMcpServer",
 ]

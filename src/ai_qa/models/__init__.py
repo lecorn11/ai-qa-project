@@ -10,6 +10,12 @@ from .knowledge import (
     KnowledgeBaseListResponse,
     KnowledgeBaseStatus,
 )
+from .mcp import (
+    McpServerInfo,
+    McpServersResponse,
+    McpSettingsResponse,
+    UpdateMcpSettingsRequest,
+)
 
 __all__ = [
     # Common
@@ -32,4 +38,9 @@ __all__ = [
     "KnowledgeBaseResponse",
     "KnowledgeBaseListResponse",
     "KnowledgeBaseStatus",
+    # MCP
+    "McpServerInfo",
+    "McpServersResponse",
+    "McpSettingsResponse",
+    "UpdateMcpSettingsRequest",
 ]

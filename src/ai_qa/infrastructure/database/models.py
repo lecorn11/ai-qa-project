@@ -1,7 +1,7 @@
 from datetime import datetime
 from sqlalchemy import (
     BigInteger, String, Text, SmallInteger, DateTime,
-    ForeignKey, Index
+    ForeignKey, Index, UniqueConstraint
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from pgvector.sqlalchemy import Vector
@@ -22,6 +22,7 @@ class User(Base):
     email: Mapped[str | None] = mapped_column(String(100), unique=True)
     nickname: Mapped[str | None] = mapped_column(String(50))
     status: Mapped[int] = mapped_column(SmallInteger, default=1)
+    mcp_enabled: Mapped[bool] = mapped_column(default=False)  # MCP 总开关
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime)
@@ -142,3 +143,23 @@ class Message(Base):
     
     def __repr__(self):
         return f"Message(id={self.id}, conv_id={self.conversation_id}, role={self.role})"
+    
+
+class UserMcpServer(Base):
+    """用户 MCP Server 选择表"""
+    __tablename__ = "user_mcp_servers"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_id)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False)
+    server_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    status: Mapped[int] = mapped_column(SmallInteger, default=1)  # 1=启用, -1=禁用
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "server_name", name="uk_user_server"),
+        Index("idx_user_mcp_servers_user_id", "user_id"),
+    )
+
+    def __repr__(self):
+        return f"UserMcpServer(id={self.id}, user_id={self.user_id}, server_name={self.server_name}, status={self.status})"

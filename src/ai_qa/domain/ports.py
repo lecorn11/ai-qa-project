@@ -27,7 +27,7 @@ class LLMPort(ABC):
         pass
 
     @abstractmethod
-    def chat_with_tools(self, messages: list[Message], tools: list, system_prompt: str = None) -> Generator[str, None, None]:
+    def chat_with_tools(self, messages: list[Message], tools: list, system_prompt: str = None):
         """支持工具调用的对话
         
         Args:

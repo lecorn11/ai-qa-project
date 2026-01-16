@@ -14,7 +14,7 @@ class UserService:
     def __init__(self, db: Session):
         self._db = db
 
-    def resigter(self, username: str, password: str, email: str = None) -> User:
+    def register(self, username: str, password: str, email: str = None) -> User:
         """用户注册"""
         logger.info(f"用户注册开始 username={username} email={email}")
 
@@ -58,7 +58,7 @@ class UserService:
             raise UnauthorizedException("用户名或密码错误")
         
         # 检查账号状态(0启动，1禁用)
-        if user.status != 1:
+        if user.status != 0:
             raise ForbiddenException("账号已被禁用")
         
         # 更新最后登录时间

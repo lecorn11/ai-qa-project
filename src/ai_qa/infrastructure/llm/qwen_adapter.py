@@ -3,7 +3,6 @@ from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 
 from ai_qa.domain.entities import Message, MessageRole
-from ai_qa.infrastructure import llm
 from ai_qa.infrastructure.llm.base import BaseLLMAdapter
 
 
@@ -71,7 +70,7 @@ class QwenAdapter(BaseLLMAdapter):
             if chunk.content:
                 yield chunk.content
     
-    def chat_with_tools(self, messages: list[Message], tools: list, system_prompt: str = None) -> Generator[str, None, None]:
+    def chat_with_tools(self, messages: list[Message], tools: list, system_prompt: str = None) -> AIMessage:
         """支持工具调用的对话"""
         # 如果有系统提示词，添加到消息开头
         if system_prompt:

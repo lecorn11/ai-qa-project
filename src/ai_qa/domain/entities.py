@@ -1,10 +1,7 @@
 from dataclasses import dataclass, field
 from enum import Enum
-from turtle import update
 from typing import Optional
 from datetime import datetime
-
-from ai_qa.infrastructure import document
 
 class MessageRole(Enum):
     """消息角色枚举"""
@@ -75,7 +72,7 @@ class KnowledgeBase:
     """知识库实体"""
     name: str
     description: str = ""
-    documnet_count: int = 0
+    document_count: int = 0
     create_at: datetime = None
 
     def __post_init__(self):

@@ -75,11 +75,11 @@ class McpSettingsService:
         
         # 获取可用的 Server 列表, 过滤掉无效的
         available = set(self._mcp_client.list_available_servers())
-        vaild_servers = [s for s in servers if s in available]
+        valid_servers = [s for s in servers if s in available]
 
-        if len(vaild_servers) != len(servers):
-            invaild = set(servers) - set(vaild_servers)
-            logger.warning(f"忽略无效的 Server: {invaild}")
+        if len(valid_servers) != len(servers):
+            invalid = set(servers) - set(valid_servers)
+            logger.warning(f"忽略无效的 Server: {invalid}")
         
         # 全量更新用户的 Server 选择
         # 先关闭该用户的所以 MCP 工具
@@ -92,7 +92,7 @@ class McpSettingsService:
         })
 
         # 再启用选择的 Server
-        for server_name in vaild_servers:
+        for server_name in valid_servers:
             existing = self._db.query(UserMcpServer).filter(
                 UserMcpServer.user_id == user_id,
                 UserMcpServer.server_name == server_name
@@ -117,7 +117,7 @@ class McpSettingsService:
 
         return{
             "mcp_enabled": mcp_enabled,
-            "servers": vaild_servers
+            "servers": valid_servers
         }
 
 

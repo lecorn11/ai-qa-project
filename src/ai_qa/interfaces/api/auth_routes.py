@@ -29,7 +29,7 @@ async def register(
     - **email**: 邮箱，可选，不可重复
     """
     try:
-        user = user_service.resigter(
+        user = user_service.register(
             username=request.username, 
             password=request.password, 
             email=request.email

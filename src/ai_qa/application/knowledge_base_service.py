@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from ai_qa.infrastructure.database.models import (
     KnowledgeBase as KnowledgeBaseModel,
     Document as DocumentModel,
-    DocumentChunk as DocumnetChunkModel,
+    DocumentChunk as DocumentChunkModel,
 )
 
 logger = logging.getLogger(__name__)
@@ -108,10 +108,10 @@ class KnowledgeBaseService:
 
         # 统计文档块数量
         chunk_count = (
-            self._db.query(DocumnetChunkModel)
+            self._db.query(DocumentChunkModel)
             .join(DocumentModel)
             .filter(
-                DocumnetChunkModel.document_id == DocumentModel.id,
+                DocumentChunkModel.document_id == DocumentModel.id,
                 DocumentModel.knowledge_base_id == kb_id,
                 DocumentModel.status == 1,
             )

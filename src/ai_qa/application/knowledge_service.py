@@ -64,7 +64,7 @@ class KnowledgeService:
 
         # 更新知识库统计
         if self._knowledge_base:
-            self._knowledge_base.documnet_count += len(chunks)
+            self._knowledge_base.document_count += len(chunks)
 
         return len(chunks)
 

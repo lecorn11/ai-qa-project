@@ -1,9 +1,6 @@
-
-
-
 import json
 import logging
-from typing import AsyncGenerator, Generator
+from typing import AsyncGenerator
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
 from ai_qa.domain.entities import Conversation, MessageRole
 from ai_qa.domain.ports import ConversationMemoryPort, LLMPort
@@ -130,7 +127,6 @@ class AgentService:
         # 超过最大迭代次数
         return "抱歉，处理过程过于复杂，请简化您的问题。"
     
-
     async def chat_stream(
         self,
         session_id: str,

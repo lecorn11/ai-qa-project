@@ -17,7 +17,7 @@ class TestUserServiceRegister:
 
         # Act
         with patch('ai_qa.infrastructure.auth.hash_password', return_value="hashed_pwd"):
-            user = service.resigter("testuser", "password123", "test@example.com")
+            user = service.register("testuser", "password123", "test@example.com")
         
         # Assert
         mock_db.add.assert_called_once()     # 验证调用了 add
@@ -32,7 +32,7 @@ class TestUserServiceRegister:
 
         # Act
         with pytest.raises(ConflictException) as exc_info:
-            service.resigter("existing_user", "password123")
+            service.register("existing_user", "password123")
 
         # Assert
         assert "用户名已存在" in str(exc_info.value)

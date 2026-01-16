@@ -265,7 +265,16 @@ class KnowledgeService:
 
 
         if not relevtant_chunks:
-            return "知识库中没有找到相关内容"
+            tips = (
+            "知识库中没有找到相关内容。\n\n"
+            "你可以试试：\n"
+            "1) 换用更具体/更关键的关键词（减少口语，突出专业名词）。\n"
+            "2) 补充上下文信息（场景、对象、时间范围、模块名称等）。\n"
+            "3) 如果你在问某份文档/规范，请提供文档名称或章节号。\n"
+            )
+            # 流式输出
+            yield tips
+            return
 
         # 3. 构建上下文
         context = "\n\n".join([chunk.content for chunk in relevtant_chunks])

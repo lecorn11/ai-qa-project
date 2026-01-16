@@ -166,11 +166,5 @@ def get_agent_service(
             llm=get_llm(),
             memory=memory,
             tools=tools,
-            system_prompt="""你是一个智能助手，可以使用以下工具来帮助回答问题
-- calculator：进行数学计算
-- get_current_time：获取当前日期和时间
-- search_knowledge_base：在知识库中搜索信息
-
-请根据用户的问题，判断是否需要使用工具，如果需要，先调用工具获取信息，再组织回答。"""
         )
     

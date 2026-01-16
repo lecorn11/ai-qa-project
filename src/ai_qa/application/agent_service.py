@@ -199,29 +199,29 @@ class AgentService:
                 system_prompt=self._system_prompt
             )
 
+            # 添加 AI 响应到消息历史
+            messages.append(response)
+
             # 如果没有工具调用，返回最终回答
             if not response.tool_calls:
                 # 构建增强的 system prompt，包含工具列表信息
                 enhanced_system_prompt = self._system_prompt
-                if all_tools:
-                    tool_descriptions = "\n".join([
-                        f"- {tool.name}: {tool.description}"
-                        for tool in all_tools
-                    ])
-                    enhanced_system_prompt = (
-                        f"{self._system_prompt}\n\n"
-                        f"当前可用的工具列表：\n{tool_descriptions}"
-                    )
+                # if all_tools:
+                #     tool_descriptions = "\n".join([
+                #         f"- {tool.name}: {tool.description}"
+                #         for tool in all_tools
+                #     ])
+                #     enhanced_system_prompt = (
+                #         f"{self._system_prompt}\n\n"
+                #         f"当前可用的工具列表：\n{tool_descriptions}"
+                #     )
 
                 for chunk in self._llm.chat_stream(messages, enhanced_system_prompt):
                     yield self._sse_event({"type":"answer","content":chunk})
                 yield self._sse_event({"type": "done"})
                 return
         
-            # 有工具调用，添加 AI 响应到消息历史
-            messages.append(response)
-
-            # 执行工具调用
+            # 有工具调用，执行工具调用
             for tool_call in response.tool_calls:
                 tool_name = tool_call["name"]
                 tool_args = tool_call["args"]

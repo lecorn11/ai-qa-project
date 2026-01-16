@@ -57,8 +57,8 @@ class UserService:
         if not verify_password(password, user.password_hash):
             raise UnauthorizedException("用户名或密码错误")
         
-        # 检查账号状态(0启动，1禁用)
-        if user.status != 0:
+        # 检查账号状态(1启动，0禁用)
+        if user.status != 1:
             raise ForbiddenException("账号已被禁用")
         
         # 更新最后登录时间

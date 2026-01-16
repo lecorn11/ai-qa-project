@@ -152,7 +152,7 @@ class UserMcpServer(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_id)
     user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False)
     server_name: Mapped[str] = mapped_column(String(100), nullable=False)
-    status: Mapped[int] = mapped_column(SmallInteger, default=1)  # 1=启用, -1=禁用
+    status: Mapped[int] = mapped_column(SmallInteger, default=1)  # 1=启用, 0=禁用
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

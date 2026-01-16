@@ -26,6 +26,6 @@ class UserResponse(BaseModel):
     username: str = Field(..., description="用户名")
     email: str | None = Field(None, description="邮箱")
     nickname: str | None = Field(None, description="昵称")
-    status: int = Field(..., description="状态：1-正常，-1-禁用")
+    status: int = Field(..., description="状态：1-正常，0-禁用")
 
     model_config = ConfigDict(from_attributes=True)

@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS user_mcp_servers (
     id           VARCHAR(36) PRIMARY KEY,
     user_id      VARCHAR(36) NOT NULL REFERENCES users(id),
     server_name  VARCHAR(100) NOT NULL,
-    status       SMALLINT DEFAULT 1,      -- 1=启用, -1=禁用
+    status       SMALLINT DEFAULT 1,      -- 1=启用, 0=禁用
     created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
@@ -23,5 +23,5 @@ CREATE INDEX IF NOT EXISTS idx_user_mcp_servers_user_id ON user_mcp_servers(user
 -- 注释
 COMMENT ON TABLE user_mcp_servers IS '用户 MCP Server 选择表';
 COMMENT ON COLUMN user_mcp_servers.server_name IS '对应 mcp_servers.json 配置文件中的 key';
-COMMENT ON COLUMN user_mcp_servers.status IS '1=启用, -1=禁用（软删除）';
+COMMENT ON COLUMN user_mcp_servers.status IS '1=启用, 0=禁用（软删除）';
 COMMENT ON COLUMN users.mcp_enabled IS 'MCP 功能总开关';

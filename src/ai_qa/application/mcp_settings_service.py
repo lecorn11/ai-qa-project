@@ -87,7 +87,7 @@ class McpSettingsService:
             UserMcpServer.user_id == user_id,
         )
         user_servers.update({
-            "status": -1,
+            "status": 0,
             "updated_at": datetime.now(timezone.utc)
         })
 

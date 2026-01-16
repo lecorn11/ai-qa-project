@@ -129,7 +129,7 @@ def get_current_user(
     if not user:
         raise UnauthorizedException("用户不存在")
     
-    if user.status != 0:
+    if user.status != 1:
         raise ForbiddenException("用户账号已被禁用")
     
     return user

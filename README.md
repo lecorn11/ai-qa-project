@@ -1,10 +1,11 @@
 # AI 智能问答系统
-基于 LangChain 和 FastAPI 构建的智能对话应用，支持 RAG 知识库问答、Agent 工具调用、流式响应，采用 Clean Architecture 架构设计
+基于 **LangChain + FastAPI** 构建的智能对话应用，支持 RAG 知识库问答、Agent 工具调用、MCP 协议集成、流式响应，采用 **Clean Architecture** 架构设计。
 
 ## ✨ 功能特性
 - **智能对话**：接入通义千问大模型，支持多轮对话，上下文记忆
 - **RAG 知识库**：上传文档构建知识库，基于文档内容精准回答
 - **Agent 工具调用**：AI 自主决策调用计算器、时间查询、知识库检索等工具
+- **MCP 协议支持**：集成 Model Context Protocol，支持动态加载外部工具
 - **文件上传**：支持 PDF、TXT 文件上传，自动解析入库
 - **查询改写**：支持自动解决对话中的指代问题（如“它是什么“）
 - **流式响应**：AI 回复逐字显示，打字机效果体验
@@ -20,6 +21,7 @@
 | **Embedding** | DashScope text-embedding-v3 |
 | **向量数据库** | PostgreSQL + pgvector |
 | **关系数据库** | PostgreSQL |
+| **MCP 协议** | mcp (Model Context Protocol) |
 | **文档解析** | pypdf |
 | **前端** |HTML + CSS + JavaScript|
 | **配置管理** | Pydantic Settings |
@@ -40,6 +42,9 @@
 │  │ ChatService  │ │ AgentService │ │  KnowledgeService    │ │
 │  │  (对话服务)   │ │ (Agent服务)   │ │ (知识库+查询改写)      │ │
 │  └──────────────┘ └──────────────┘ └──────────────────────┘ │
+│  ┌──────────────────────────────────────────────────────────┤
+│  │ McpSettingsService (MCP 设置服务)                         │
+│  └──────────────────────────────────────────────────────────┤
 ├─────────────────────────────────────────────────────────────┤
 │                      Domain 领域层                           │
 │  ┌──────────────┐  ┌──────────────────────────────────────┐ │
@@ -54,6 +59,10 @@
 │  │QwenAdapter │ │ DashScope  │ │ PostgreSQL │ │  Tools   │ │
 │  │   (LLM)    │ │ (Embedding)│ │ (pgvector) │ │计算器/时间 │ │
 │  └────────────┘ └────────────┘ └────────────┘ └──────────┘ │
+│  ┌────────────────────────────────────────────────────────┐ │
+│  │              MCP Client Service                        │ │
+│  │  (MCP 协议客户端，动态加载外部工具)                        │ │
+│  └────────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -87,6 +96,10 @@ ai-qa-project/
 │   │   ├── memory/
 │   │   │   ├── in_memory.py    # 内存存储
 │   │   │   └── postgres_memory.py # PostgreSQL 存储
+│   │   ├── mcp/                # MCP 协议模块
+│   │   │   ├── client.py       # MCP 客户端服务
+│   │   │   ├── config.py       # MCP 配置加载
+│   │   │   └── server.py       # MCP Server
 │   │   ├── tools/              # Agent 工具
 │   │   │   ├── calculator.py
 │   │   │   ├── time_tool.py
@@ -110,6 +123,7 @@ ai-qa-project/
 │   │   ├── auth.py
 │   │   ├── chat.py
 │   │   └── knowledge.py
+│   │   └── mcp.py              # MCP 相关模型
 │   │
 │   └── config/                 # 配置管理
 │       ├── settings.py         # Pydantic Settings
@@ -128,6 +142,7 @@ ai-qa-project/
 ├── scripts/
 │   └── init.sql                # 数据库初始化脚本
 │
+├── mcp_servers.json            # MCP Server 配置文件
 ├── Dockerfile
 ├── docker-compose.yml
 ├── .env.example
@@ -269,19 +284,13 @@ docker run -p 8000:8000 --env-file .env ai-qa-app
 | POST | `/api/v1/agent/chat` | Agent 对话 |
 | POST | `/api/v1/agent/chat/stream` | Agent 对话（流式） |
 
-### RAG 问答
+### MCP 设置接口
 
-发送消息时设置 `use_knowledge: true` 即可启用知识库问答：
-
-```json
-{
-  "content": "Python 是谁发明的？",
-  "use_knowledge": true,
-  "knowledge_base_id": "kb_xxx"
-}
-```
-
-详细文档请访问 `/docs` 查看 Swagger UI。
+| 方法 | 端点 | 描述 |
+|-----|------|------|
+| GET | `/api/v1/mcp/servers` | 获取可用的 MCP Server 列表 |
+| GET | `/api/v1/mcp/settings` | 获取用户 MCP 设置 |
+| PUT | `/api/v1/mcp/settings` | 更新 MCP 设置 |
 
 ## 🔧 核心设计
 
@@ -309,6 +318,19 @@ docker run -p 8000:8000 --env-file .env ai-qa-app
     └─ 否 → 直接生成回答
 ```
 
+### MCP 集成架构
+
+```
+mcp_servers.json (配置) → MCPClientService (客户端)
+                              ↓
+                        连接 MCP Server
+                              ↓
+                     获取工具列表 → 转换为 LangChain 工具
+                              ↓
+                        AgentService 调用
+```
+
+
 ## 🧪 测试
 
 ```bash
@@ -321,6 +343,8 @@ pytest tests/unit/
 # 运行集成测试
 pytest tests/integration/
 
+# 查看测试覆盖率
+pytest --cov=ai_qa
 ```
 
 ## 🗺️ 开发计划
@@ -334,8 +358,8 @@ pytest tests/integration/
 - [x] Docker 部署：容器化方案
 - [x] 单元测试 + 集成测试
 - [x] Agent 工具调用：计算器、时间、知识库检索
+- [x] MCP 协议支持：动态加载外部工具
 - [ ] Agent 思维链
-- [ ] MCP 协议支持
 - [ ] 多 LLM 提供商（OpenAI、Claude）
 - [ ] 对话摘要/长期记忆
 - [ ] 异步任务队列

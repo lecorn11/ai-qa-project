@@ -1,21 +1,38 @@
+# LangChain 生态
 langchain>=1.0.0
+langchain-core>=1.0.0
 langchain-openai>=1.0.0
 langchain-community>=0.4.0
 langchain-text-splitters>=1.0.0
+# MCP 协议支持（新增）
+mcp>=1.0.0
+# 配置管理
 python-dotenv>=1.0.0
 pydantic-settings>=2.0.0
+# Web 框架
 fastapi>=0.100.0
 uvicorn[standard]>=0.20.0
+python-multipart>=0.0.6
+# HTTP 客户端（新增）
+httpx>=0.24.0
+# 大模型服务
 dashscope>=1.0.0
+# 向量存储
 faiss-cpu>=1.7.0
 numpy>=1.24.0
+# 文档处理
 pypdf>=4.0.0
-python-multipart>=0.0.6
+# 数据库
 sqlalchemy>=2.0.0
 asyncpg>=0.29.0
 psycopg2-binary>=2.9.0
 pgvector>=0.2.0
+# 认证加密
 python-jose[cryptography]>=3.3.0
 passlib[bcrypt]>=1.7.0
 bcrypt==4.0.1
+# 工具
 uuid7>=0.1.0
+# 开发依赖
+pytest>=7.0.0
+pytest-asyncio>=0.21.0

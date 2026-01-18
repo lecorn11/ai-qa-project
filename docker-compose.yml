@@ -4,17 +4,25 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    
+
     # 固定容器名称
     container_name: ai-qa-app
 
     # 端口映射
-    ports: 
+    ports:
       - "8000:8000"
 
-    # 环境变量
-    env_file: 
+    # 环境变量：先加载 .env，然后用 Docker 特定配置覆盖
+    env_file:
       - .env
+    environment:
+      # Docker 环境覆盖：使用容器名作为数据库主机
+      - DATABASE_URL=postgresql://ai_qa_user:ai_qa_password@postgres:5432/ai_qa_db
+
+    # 依赖数据库服务启动
+    depends_on:
+      postgres:
+        condition: service_healthy
 
     # 自动重启策略
     restart: unless-stopped
@@ -27,6 +35,10 @@ services:
       retries: 3
       start_period: 10s
 
+    # 连接到共享网络
+    networks:
+      - ai-qa-network
+
     # 日志管理
     logging:
       driver: "json-file"
@@ -38,7 +50,7 @@ services:
   postgres:
     image: pgvector/pgvector:pg16
     container_name: ai-qa-postgres
-    environment: 
+    environment:
       POSTGRES_USER: ai_qa_user
       POSTGRES_PASSWORD: ai_qa_password
       POSTGRES_DB: ai_qa_db
@@ -52,6 +64,13 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - ai-qa-network
+    restart: unless-stopped
 
 volumes:
   postgres_data:
+
+networks:
+  ai-qa-network:
+    driver: bridge

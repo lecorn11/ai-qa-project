@@ -1,5 +1,5 @@
-# 基础镜像
-FROM python:3.12-slim
+# 使用包含 Node.js 的 Python 镜像
+FROM nikolaik/python-nodejs:python3.12-nodejs20-slim
 
 # 设置工作目录
 WORKDIR /app
@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# 安装依赖
+# 安装 Python 依赖
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 

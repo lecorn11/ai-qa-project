@@ -392,12 +392,7 @@ pytest --cov=ai_qa
 - [x] MCP 协议支持：动态加载外部工具
 - [ ] RAG 检索增强（Rerank）
 - [ ] Agent 思维链
+- [ ] Agent Skill 支持
 - [ ] 多 LLM 提供商（OpenAI、Claude、DeepSeek）
 - [ ] 对话摘要/长期记忆
 - [ ] 异步任务队列
-- [ ] Agent Skill 支持
-
-
-## 📄 许可证
-
-MIT License

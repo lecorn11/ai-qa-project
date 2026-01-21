@@ -1,10 +1,7 @@
-
-
 from datetime import datetime
-from hmac import new
-from venv import create
-from requests import Session, session
-from ai_qa.domain.entities import Conversation, MessageRole
+from sqlalchemy.orm import Session
+
+from ai_qa.domain.entities import Conversation, Message, MessageRole
 from ai_qa.domain.exceptions import ValidationException
 from ai_qa.domain.ports import ConversationMemoryPort
 from ai_qa.infrastructure.database.models import (
@@ -22,39 +19,46 @@ class PostgresConversationMemory(ConversationMemoryPort):
         
     def get_conversation(self, session_id: str, user_id: str = None) -> Conversation:
         """获取对话"""
+        # 参数校验（Guard Clause 卫语句）
         if not session_id:
             raise ValidationException("session_id 不能为空")
         
-        # 查询数据库-会话数据模型
-        query = self._db.query(ConversationModel).filter(
-            ConversationModel.id == session_id
-        )
+        # 构建查询条件
+        contitions = [ConversationModel.id == session_id]
         if user_id:
-            query = query.filter(ConversationModel.user_id == user_id)
+            contitions.append(ConversationModel.user_id == user_id)
         
-        db_conversation = query.first()
+        # 查询会话数据模型
+        db_conversation = self._db.query(ConversationModel).filter(*contitions).first()
 
-        # 不存在则返回空对话
+        # 不存在则返回空会话实体
         if not db_conversation:
             return Conversation(id=session_id, user_id=user_id)
 
-        # 创建领域实体
-        conversation = Conversation(id=session_id)
-        conversation.user_id = db_conversation.user_id 
-
-        # 查询数据库-消息数据模型，按时间排序
+        # 查询消息数据模型
         db_messages = self._db.query(MessageModel).filter(
             MessageModel.conversation_id == db_conversation.id
-        ).order_by(MessageModel.created_at).all()
+        ).order_by(
+            MessageModel.created_at
+        ).all()
 
-        # 填充消息到领域实体
-        for msg in db_messages:
-            conversation.add_message(
-                role = MessageRole.USER if msg.role == "user" else MessageRole.ASSISTANT,
-                content = msg.content
+        # 消息数据模型 -> 消息领域实体
+        messages = [
+            Message(
+                role=MessageRole.USER if msg.role == "user" else MessageRole.ASSISTANT,
+                content=msg.content
             )
+            for msg in db_messages
+        ]
         
-        return conversation
+        # 创建并返回 会话领域实体
+        return Conversation(
+            id=db_conversation.id,
+            user_id=db_conversation.user_id,
+            messages=messages,
+            created_at=db_conversation.created_at,
+            updated_at=db_conversation.updated_at
+        )
 
     def save_conversation(self, conversation: Conversation) -> None:
         """保存对话"""

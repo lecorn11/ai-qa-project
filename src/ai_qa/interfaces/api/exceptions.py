@@ -1,5 +1,5 @@
 import logging
-from fastapi import HTTPException, Request
+from fastapi import Request
 from fastapi.responses import JSONResponse
 
 from ai_qa.domain.exceptions import AppException

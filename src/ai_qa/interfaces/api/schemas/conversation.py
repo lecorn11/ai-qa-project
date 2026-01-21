@@ -28,10 +28,12 @@ class ConversationListResponse(BaseModel):
     """会话列表响应"""
     conversations: list[ConversationResponse]
 
+
 class AgentChatRequest(BaseModel):
     """Agent 对话请求"""
     content: str = Field(..., description="用户信息", examples=["今天几号？帮我算一下 123 * 456"])
     mcp_servers: list[str] = Field(default_factory=list)
+
 
 class AgentChatResponse(BaseModel):
     """Agent 对话响应"""

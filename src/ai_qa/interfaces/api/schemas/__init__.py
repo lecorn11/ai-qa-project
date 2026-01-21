@@ -1,7 +1,13 @@
-# src/ai_qa/models/__init__.py
 from .common import SuccessResponse, ErrorResponse
 from .auth import RegisterRequest, LoginRequest, TokenResponse, UserResponse
-from .chat import SendMessageRequest, MessageResponse, ConversationResponse, ConversationListResponse
+from .conversation import (
+    SendMessageRequest,
+    MessageResponse,
+    ConversationResponse,
+    ConversationListResponse,
+    AgentChatRequest,
+    AgentChatResponse,
+)
 from .knowledge import (
     CreateKnowledgeBaseRequest,
     UpdateKnowledgeBaseRequest,
@@ -31,6 +37,8 @@ __all__ = [
     "MessageResponse",
     "ConversationResponse",
     "ConversationListResponse",
+    "AgentChatRequest",
+    "AgentChatResponse",
     # Knowledge
     "CreateKnowledgeBaseRequest",
     "UpdateKnowledgeBaseRequest",

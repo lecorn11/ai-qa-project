@@ -18,14 +18,15 @@ from ai_qa.interfaces.api.dependencies import (
     get_memory,
     get_current_user,
 )
-from ai_qa.models import (
+from ai_qa.interfaces.api.schemas import (
     SendMessageRequest,
     MessageResponse,
     ConversationResponse,
     ConversationListResponse,
     SuccessResponse,
+    AgentChatRequest,
+    AgentChatResponse
 )
-from ai_qa.models.chat import AgentChatRequest, AgentChatResponse
 
 # 创建路由器
 router = APIRouter(prefix="/conversations", tags=["对话"])

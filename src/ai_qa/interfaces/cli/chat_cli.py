@@ -37,7 +37,7 @@ def main():
             break
 
         if user_input.lower() == "clear":
-            chat_service.clear_conversation(session_id)
+            memory.clear_conversation(session_id)
             print("对话历史已清除。")
             continue
 

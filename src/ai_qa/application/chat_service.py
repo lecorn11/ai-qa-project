@@ -63,11 +63,12 @@ class ChatService:
     def chat_stream(
         self, session_id: str, user_input: str, user_id: str = None
     ) -> Generator:
-        """流式处理用户输入，逐步返回 AI 回复
+        """处理用户输入，流式返回 AI 回复
 
         Args:
             session_id: 会话 ID
             user_input: 用户输入内容
+            user_id:    用户 ID
 
         Returns:
             AI 回复内容
@@ -82,29 +83,27 @@ class ChatService:
         # 2. 添加用户消息
         conversation.add_message(MessageRole.USER, user_input)
 
-        # 3. 调用 LLM  流式接口，获取回复
-
+        # 3. 调用 LLM 流式接口，获取回复
         full_response = ""
+        try:
+            for chunk in self._llm.chat_stream(
+                messages=conversation.messages, system_prompt=self._system_prompt
+            ):
+                full_response += chunk
+                yield chunk
+        except Exception as e:
+            logger.error(
+                f"流式对话异常 session_id = {session_id} error = {str(e)} response_length = {len(full_response)}"
+            )
+            raise
+        finally:
+            if full_response:
+                # 4. 添加 AI 完整（或部分）回复到历史中
+                conversation.add_message(MessageRole.ASSISTANT, full_response)
+                # 5. 保存对话历史
+                self._memory.save_conversation(conversation)
 
-        for chunk in self._llm.chat_stream(
-            messages=conversation.messages, system_prompt=self._system_prompt
-        ):
-            full_response += chunk
-            yield chunk
-
-        # 4. 添加 AI 完整回复到历史中
-        conversation.add_message(MessageRole.ASSISTANT, full_response)
-
-        # 5. 保存对话历史
-        self._memory.save_conversation(conversation)
-
-        logger.info(f"流式对话处理完成 session_id={session_id}")
-
-    def clear_conversation(self, session_id: str) -> None:
-        """清除指定会话的对话历史"""
-        logger.info(f"清除对话开始 session_id={session_id}")
-        self._memory.clear_conversation(session_id)
-        logger.info(f"清除对话完成 session_id={session_id}")
+            logger.info(f"流式对话处理完成 session_id={session_id}")
 
     def set_system_prompt(self, prompt: str) -> None:
         """设置系统提示词"""

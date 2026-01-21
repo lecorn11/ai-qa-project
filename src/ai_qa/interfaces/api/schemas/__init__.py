@@ -2,7 +2,9 @@ from .common import SuccessResponse, ErrorResponse
 from .auth import RegisterRequest, LoginRequest, TokenResponse, UserResponse
 from .conversation import (
     SendMessageRequest,
+    MessageItem,
     MessageResponse,
+    MessagesResponse,
     ConversationResponse,
     ConversationListResponse,
     AgentChatRequest,
@@ -32,9 +34,11 @@ __all__ = [
     "LoginRequest",
     "TokenResponse",
     "UserResponse",
-    # Chat
+    # Conversation
     "SendMessageRequest",
+    "MessageItem",
     "MessageResponse",
+    "MessagesResponse",
     "ConversationResponse",
     "ConversationListResponse",
     "AgentChatRequest",

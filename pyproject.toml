@@ -30,3 +30,6 @@ python_classes = ["Test*"]
 python_functions = ["test_*"]
 # 忽略的目录
 norecursedirs = ["tests/others"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["ai_qa"]

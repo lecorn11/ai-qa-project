@@ -1,16 +1,17 @@
 from pathlib import Path
-from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 
-from ai_qa.config.settings import settings
+from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+
 from ai_qa.config.logging import setup_logging
-from ai_qa.interfaces.api.exceptions import register_exception_handlers
-from ai_qa.interfaces.api.middleware import logging_middleware
-from ai_qa.interfaces.api.conversation_routes import router as conversation_router
-from ai_qa.interfaces.api.knowledge_routes import router as knowledge_router
+from ai_qa.config.settings import settings
 from ai_qa.interfaces.api.auth_routes import router as auth_router
+from ai_qa.interfaces.api.conversation_routes import router as conversation_router
+from ai_qa.interfaces.api.exceptions import register_exception_handlers
+from ai_qa.interfaces.api.knowledge_routes import router as knowledge_router
 from ai_qa.interfaces.api.mcp_routes import router as mcp_router
+from ai_qa.interfaces.api.middleware import logging_middleware
 
 # 配置日志
 setup_logging(debug=settings.debug)

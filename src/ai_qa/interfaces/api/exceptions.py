@@ -1,8 +1,10 @@
 import logging
+
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
 from ai_qa.domain.exceptions import AppException
+
 logger = logging.getLogger(__name__)
 
 def register_exception_handlers(app):

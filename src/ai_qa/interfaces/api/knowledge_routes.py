@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, UploadFile, File
+from fastapi import APIRouter, Depends, File, UploadFile
 
 from ai_qa.application.knowledge_base_service import KnowledgeBaseService
 from ai_qa.application.knowledge_service import KnowledgeService
@@ -11,13 +11,13 @@ from ai_qa.interfaces.api.dependencies import (
     get_knowledge_service,
 )
 from ai_qa.interfaces.api.schemas import (
-    CreateKnowledgeBaseRequest,
-    UpdateKnowledgeBaseRequest,
     AddDocumentRequest,
-    KnowledgeBaseResponse,
+    CreateKnowledgeBaseRequest,
     KnowledgeBaseListResponse,
+    KnowledgeBaseResponse,
     KnowledgeBaseStatus,
     SuccessResponse,
+    UpdateKnowledgeBaseRequest,
 )
 
 router = APIRouter(tags=["知识库"])

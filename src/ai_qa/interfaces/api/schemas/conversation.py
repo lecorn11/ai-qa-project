@@ -9,11 +9,23 @@ class SendMessageRequest(BaseModel):
     use_knowledge: bool = Field(False, description="是否使用知识库回答")
 
 
+class MessageItem(BaseModel):
+    """消息项"""
+    role: str = Field(..., description="角色：user/assistant", examples=["assistant"])
+    content: str = Field(..., description="消息内容")
+
+
 class MessageResponse(BaseModel):
-    """消息响应"""
+    """消息响应（单条，带时间戳）"""
     role: str = Field(..., description="角色：user/assistant", examples=["assistant"])
     content: str = Field(..., description="消息内容")
     timestamp: datetime = Field(..., description="时间戳")
+
+
+class MessagesResponse(BaseModel):
+    """消息历史响应"""
+    session_id: str = Field(..., description="会话 ID")
+    messages: list[MessageItem] = Field(..., description="消息列表")
 
 
 class ConversationResponse(BaseModel):

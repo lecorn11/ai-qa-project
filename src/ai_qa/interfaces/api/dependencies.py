@@ -1,22 +1,28 @@
 from functools import lru_cache
+
 from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from ai_qa.application.agent_service import AgentService
-from ai_qa.application.knowledge_service import KnowledgeService
+from ai_qa.application.chat_service import ChatService
 from ai_qa.application.knowledge_base_service import KnowledgeBaseService
+from ai_qa.application.knowledge_service import KnowledgeService
 from ai_qa.application.user_service import UserService
 from ai_qa.config.settings import Settings
 from ai_qa.domain.exceptions import ForbiddenException, UnauthorizedException
+from ai_qa.domain.ports import (
+    ConversationMemoryPort,
+    EmbeddingPort,
+    LLMPort,
+    VectorStorePort,
+)
 from ai_qa.infrastructure.auth.security import verify_token
 from ai_qa.infrastructure.database.connection import get_db
 from ai_qa.infrastructure.database.models import User
 from ai_qa.infrastructure.embedding.dashscope_embedding import DashScopeEmbeddingAdapter
 from ai_qa.infrastructure.llm.qwen_adapter import QwenAdapter
 from ai_qa.infrastructure.mcp.client import MCPClientService
-from ai_qa.application.chat_service import ChatService
-from ai_qa.domain.ports import EmbeddingPort, LLMPort, ConversationMemoryPort, VectorStorePort
 from ai_qa.infrastructure.memory.postgres_memory import PostgresConversationMemory
 from ai_qa.infrastructure.tools import calculator
 from ai_qa.infrastructure.tools.knowledge_search import create_knowledge_search_tool

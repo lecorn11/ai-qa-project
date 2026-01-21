@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends
 
+from ai_qa.application.user_service import UserService
 from ai_qa.domain.exceptions import ConflictException
 from ai_qa.infrastructure.database.models import User
-from ai_qa.application.user_service import UserService
-from ai_qa.interfaces.api.dependencies import get_user_service, get_current_user
+from ai_qa.interfaces.api.dependencies import get_current_user, get_user_service
 from ai_qa.interfaces.api.schemas import (
-    RegisterRequest,
     LoginRequest,
+    RegisterRequest,
     TokenResponse,
     UserResponse,
 )

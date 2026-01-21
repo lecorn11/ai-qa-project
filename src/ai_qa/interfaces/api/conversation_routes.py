@@ -1,31 +1,34 @@
-from fastapi import APIRouter, Depends
-from fastapi.responses import StreamingResponse
 import json
 
+from fastapi import APIRouter, Depends
+from fastapi.responses import StreamingResponse
+
 from ai_qa.application.agent_service import AgentService
-from ai_qa.domain.entities import MessageRole, Conversation
-from ai_qa.application.knowledge_service import KnowledgeService
-from ai_qa.infrastructure.database.models import User
 from ai_qa.application.chat_service import ChatService
-from ai_qa.domain.ports import ConversationMemoryPort
+from ai_qa.application.knowledge_service import KnowledgeService
+from ai_qa.domain.entities import Conversation, MessageRole
 from ai_qa.domain.exceptions import NotFoundException
+from ai_qa.domain.ports import ConversationMemoryPort
+from ai_qa.infrastructure.database.models import User
 from ai_qa.infrastructure.mcp.client import MCPClientService
 from ai_qa.interfaces.api.dependencies import (
     get_agent_service,
     get_chat_service,
+    get_current_user,
     get_knowledge_service,
     get_mcp_client,
     get_memory,
-    get_current_user,
 )
 from ai_qa.interfaces.api.schemas import (
-    SendMessageRequest,
-    MessageResponse,
-    ConversationResponse,
-    ConversationListResponse,
-    SuccessResponse,
     AgentChatRequest,
-    AgentChatResponse
+    AgentChatResponse,
+    ConversationListResponse,
+    ConversationResponse,
+    MessageItem,
+    MessageResponse,
+    MessagesResponse,
+    SendMessageRequest,
+    SuccessResponse,
 )
 
 # 创建路由器
@@ -131,13 +134,13 @@ async def get_messages(
 
     conversation = memory.get_conversation(session_id, user_id=current_user.id)
 
-    return {
-        "session_id": session_id,
-        "messages": [
-            {"role": msg.role.value, "content": msg.content}
+    return MessagesResponse(
+        session_id=session_id,
+        messages=[
+            MessageItem(role=msg.role.value, content=msg.content)
             for msg in conversation.messages
         ],
-    }
+    )
 
 
 @router.post(

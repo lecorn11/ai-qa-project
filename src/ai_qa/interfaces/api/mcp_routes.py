@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from ai_qa.application.mcp_settings_service import McpSettingsService
 from ai_qa.infrastructure.database.models import User
 from ai_qa.infrastructure.mcp.client import MCPClientService
-from ai_qa.interfaces.api.dependencies import get_current_user, get_mcp_client, get_db
+from ai_qa.interfaces.api.dependencies import get_current_user, get_db, get_mcp_client
 from ai_qa.interfaces.api.schemas import (
     McpServerInfo,
     McpServersResponse,

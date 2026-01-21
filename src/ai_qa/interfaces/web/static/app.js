@@ -616,8 +616,7 @@ async function sendNormalMessage(message, useKnowledge, kbId, typingId) {
 
 async function sendAgentMessage(message, typingId) {
     const body = {
-        content: message,
-        session_id: currentConversationId
+        content: message
     };
 
     // 如果启用了 MCP，自动带上选中的 servers
@@ -625,7 +624,7 @@ async function sendAgentMessage(message, typingId) {
         body.mcp_servers = mcpSettings.selected_servers;
     }
 
-    const response = await fetch(`${API_BASE}/agent/chat/stream`, {
+    const response = await fetch(`${API_BASE}/conversations/${currentConversationId}/messages/agent/stream`, {
         method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify(body)

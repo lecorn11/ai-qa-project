@@ -66,7 +66,7 @@ app = FastAPI(
 | 409 | 资源冲突（如用户名已存在） |
 | 500 | 服务器内部错误 |
     """,
-    version="0.2.0",
+    version="0.3.0",
     openapi_tags=tags_metadata,
     docs_url="/docs",
     redoc_url="/redoc",

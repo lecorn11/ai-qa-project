@@ -7,6 +7,44 @@ from ai_qa.domain.ports import ConversationMemoryPort, LLMPort
 
 logger = logging.getLogger(__name__)
 
+REACT_SYSTEM_PROMPT = """你是一个智能助手，可以使用工具来帮助回答问题。
+
+## 工作方式
+你需要按照「思考 → 行动 → 观察」的模式来解决问题：
+
+1. **思考**：分析用户的问题，思考下一步该怎么做
+2. **行动**：如果需要，调用合适的工具
+3. **观察**：查看工具返回的结果，继续思考
+4. 重复以上步骤，直到能够给出最终答案
+
+## 重要规则
+- 每次回复时，你必须先输出你的思考过程
+- 思考内容用 [思考] 开头，单独一行
+- 即使你决定调用工具，也要先说明为什么要调用这个工具
+- 思考要简洁，1-2 句话即可
+- **当本轮需要调用多个工具时，在“行动”之前，[思考] 必须一次性写清楚“本轮计划调用的所有工具清单（按顺序）+ 每个工具的目的/原因”。不得只写第一个工具。**
+- **如果你预期需要分多轮调用工具（例如先查A再决定是否查B），也必须在 [思考] 里说明“当前先调用哪个工具 + 后续可能调用哪些工具及触发条件”。**
+
+
+## 输出格式示例
+
+示例 1 - 需要调用工具：
+[思考] 用户想要计算 123 × 456，我需要使用计算器工具来确保准确性。
+
+示例 2 - 需要调用多个工具（同一轮）：
+[思考] 用户想要计算 123 × 456 并查询日期；本轮我将先用计算器确保乘法准确，然后用时间查询工具获取当前日期。
+
+示例 3 - 需要分多轮调用工具（有条件）：
+[思考] 用户想要找某政策的最新信息；本轮先用网页搜索工具确认最新版本与发布日期，如搜索结果不完整再打开权威来源页面进一步核对细节。
+
+示例 4 - 观察工具结果后：
+[思考] 计算器返回了 56088，现在我可以回答用户了。
+
+示例 5 - 不需要工具：
+[思考] 这是一个简单的问候，不需要使用任何工具。
+你好！有什么我可以帮助你的吗？
+"""
+
 class AgentService:
     """Agent 服务 - 支持工具调用的智能对话"""
 
@@ -15,12 +53,12 @@ class AgentService:
             llm: LLMPort,
             memory: ConversationMemoryPort,
             tools: list = None,
-            system_prompt: str = "你是一个智能助手，可以使用工具来帮助回答问题。"
+            system_prompt: str = None
     ):
         self._llm = llm
         self._memory = memory
         self._tools = tools or []
-        self._system_prompt = system_prompt
+        self._system_prompt = system_prompt or REACT_SYSTEM_PROMPT
 
         # 构建工具映射
         self._tool_map = {tool.name: tool for tool in self._tools}
@@ -189,35 +227,35 @@ class AgentService:
         """Agent 循环编排（流式版本）"""
 
         all_tools, tool_map = self._get_tools_and_map(extra_tools)
+        iteration = 0
 
-
-        for _ in range(max_iterations):
+        for iteration in range(max_iterations):
             # 调用 LLM
             response = self._llm.chat_with_tools(
                 messages=messages,
                 tools=all_tools,
                 system_prompt=self._system_prompt
             )
+            if response.content:
+                thinking_content = self._extract_thinking(response.content)
+                if thinking_content:
+                    yield self._sse_event({
+                        "type": "thinking",
+                        "content": thinking_content,
+                        "iteration": iteration + 1
+                    })
+            logger.info(f"Agent 工具调用响应: {response.content} Tool Calls: {response.tool_calls}")
 
             # 添加 AI 响应到消息历史
             messages.append(response)
 
             # 如果没有工具调用，返回最终回答
             if not response.tool_calls:
-                # 构建增强的 system prompt，包含工具列表信息
-                enhanced_system_prompt = self._system_prompt
-                # if all_tools:
-                #     tool_descriptions = "\n".join([
-                #         f"- {tool.name}: {tool.description}"
-                #         for tool in all_tools
-                #     ])
-                #     enhanced_system_prompt = (
-                #         f"{self._system_prompt}\n\n"
-                #         f"当前可用的工具列表：\n{tool_descriptions}"
-                #     )
+                # 提取最终答案（过滤掉思考部分）
+                final_answer = self._extract_final_answer(response.content)
 
-                for chunk in self._llm.chat_stream(messages, enhanced_system_prompt):
-                    yield self._sse_event({"type":"answer","content":chunk})
+                if final_answer:
+                    yield self._sse_event({"type": "answer", "content": final_answer})
                 yield self._sse_event({"type": "done"})
                 return
         
@@ -258,6 +296,38 @@ class AgentService:
         })
         yield self._sse_event({"type":"done"})
     
+    def _extract_thinking(self, content: str) -> str:
+        """ 从 LLM 响应中提取思考内容"""
+        if not content:
+            return ""
+        
+        lines = content.strip().split('\n')
+        thinking_lines = []
+
+        for line in lines:
+            # 匹配 [思考] 开头的行
+            if line.strip().startswith("[思考]"):
+                thinking = line.strip().replace("[思考]", "").strip()
+                thinking_lines.append(thinking)
+
+        return " ".join(thinking_lines)
+    
+    def _extract_final_answer(self, content: str) -> str:
+        """ 从 LLM 响应中提取最终答案（非思考部分）"""
+        if not content:
+            return ""
+        
+        lines = content.strip().split('\n')
+        answer_lines = []
+
+        for line in lines:
+            # 匹配 [思考] 开头的行
+            if not line.strip().startswith("[思考]"):
+                answer_lines.append(line)
+
+        return " ".join(answer_lines).strip()
+                        
+
     def _sse_event(self, data: dict) -> str:
         """格式化为 SSE 事件"""
         return f"data: {json.dumps(data, ensure_ascii=False)}\n\n"

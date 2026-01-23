@@ -167,7 +167,7 @@ class KnowledgeService:
     def query(
         self,
         question: str,
-        knowledge_base_id: str,
+        knowledge_base_id: str = None,
         session_id: str = None,
         top_k: int = 3,
     ) -> str:

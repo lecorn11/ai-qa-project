@@ -629,67 +629,87 @@ async function sendAgentMessage(message, typingId) {
         headers: authHeaders(),
         body: JSON.stringify(body)
     });
-    
+
     // 移除加载动画
     removeTypingIndicator(typingId);
-    
+
     // 处理流式响应
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
-    
-    let toolCalls = [];        // 收集工具调用
+
+    let steps = [];            // 按时间顺序记录所有步骤
     let answerContent = '';    // 最终回答
     let messageElement = null; // 消息 DOM 元素
-    
+
     while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        
+
         const chunk = decoder.decode(value);
         const lines = chunk.split('\n\n');
-        
+
         for (const line of lines) {
             if (!line.startsWith('data: ')) continue;
-            
+
             const rawData = line.slice(6).trim();
             if (!rawData) continue;
-            
+
             try {
                 const event = JSON.parse(rawData);
-                
-                switch (event.type) {
-                    case 'tool_start':
-                        // 开始调用工具
-                        toolCalls.push({
-                            name: event.tool,
-                            input: event.input,
-                            output: null
-                        });
-                        break;
-                        
-                    case 'tool_result':
-                        // 工具返回结果
-                        const lastTool = toolCalls[toolCalls.length - 1];
-                        if (lastTool) {
-                            lastTool.output = event.output;
-                        }
-                        break;
-                        
-                    case 'answer':
-                        console.log('answer event:', JSON.stringify(event.content));
 
-                        // 流式回答
-                        answerContent += event.content;
-                        
-                        // 创建或更新消息元素
+                switch (event.type) {
+                    case 'thinking':
+                        // 记录思考步骤
+                        steps.push({ type: 'thinking', content: event.content });
                         if (!messageElement) {
-                            messageElement = appendAgentMessage(toolCalls, answerContent);
+                            messageElement = appendAgentMessage(steps, answerContent);
                         } else {
-                            updateAgentMessage(messageElement, toolCalls, answerContent);
+                            updateAgentMessage(messageElement, steps, answerContent);
                         }
                         scrollToBottom();
                         break;
-                        
+
+                    case 'tool_start':
+                        // 记录工具调用开始
+                        steps.push({
+                            type: 'tool_start',
+                            tool: event.tool,
+                            input: event.input
+                        });
+                        if (!messageElement) {
+                            messageElement = appendAgentMessage(steps, answerContent);
+                        } else {
+                            updateAgentMessage(messageElement, steps, answerContent);
+                        }
+                        scrollToBottom();
+                        break;
+
+                    case 'tool_result':
+                        // 记录工具调用结果
+                        steps.push({
+                            type: 'tool_result',
+                            tool: event.tool,
+                            output: event.output
+                        });
+                        if (!messageElement) {
+                            messageElement = appendAgentMessage(steps, answerContent);
+                        } else {
+                            updateAgentMessage(messageElement, steps, answerContent);
+                        }
+                        scrollToBottom();
+                        break;
+
+                    case 'answer':
+                        // 流式回答
+                        answerContent += event.content;
+                        if (!messageElement) {
+                            messageElement = appendAgentMessage(steps, answerContent);
+                        } else {
+                            updateAgentMessage(messageElement, steps, answerContent);
+                        }
+                        scrollToBottom();
+                        break;
+
                     case 'done':
                         // 完成
                         break;
@@ -748,56 +768,77 @@ function toggleSection(sectionId) {
     icon.classList.toggle('collapsed');
 }
 
-function appendAgentMessage(toolCalls, content) {
+function appendAgentMessage(steps, answerContent) {
     const container = document.getElementById('chatContainer');
     const div = document.createElement('div');
     div.className = 'message assistant';
-    
-    div.innerHTML = buildAgentMessageHTML(toolCalls, content);
-    
+
+    div.innerHTML = buildAgentMessageHTML(steps, answerContent);
+
     container.appendChild(div);
     scrollToBottom();
     return div;
 }
 
-function updateAgentMessage(element, toolCalls, content) {
-    element.innerHTML = buildAgentMessageHTML(toolCalls, content);
+function updateAgentMessage(element, steps, answerContent) {
+    element.innerHTML = buildAgentMessageHTML(steps, answerContent);
 }
 
-function buildAgentMessageHTML(toolCalls, answerContent) {
+function buildAgentMessageHTML(steps, answerContent) {
     let html = '';
-    
-    if (toolCalls.length > 0) {
-        let toolsHtml = toolCalls.map(tool => 
-            `<div class="tool-call-item">` +
-            `<div class="tool-call-name">📌 ${formatToolName(tool.name)}</div>` +
-            `<div class="tool-call-input">输入：${escapeHtml(tool.input || '')}</div>` +
-            `<div class="tool-call-output">结果：${escapeHtml(tool.output || '...')}</div>` +
-            `</div>`
-        ).join('');
-        
-        html += `<div class="tool-calls">` +
-            `<div class="tool-calls-header" onclick="toggleToolCalls(this)">` +
-            `<span class="tool-calls-toggle">▶</span>` +
-            `<span>🔧 使用了 ${toolCalls.length} 个工具</span>` +
+
+    // 1. 展示推理链（思考 + 工具调用按时间顺序交替）
+    if (steps.length > 0) {
+        let stepNumber = 0;  // 步骤计数器（只计算思考步骤）
+
+        let stepsHtml = steps.map(step => {
+            if (step.type === 'thinking') {
+                stepNumber++;
+                return `<div class="step-item step-thinking">` +
+                    `<span class="step-number">步骤 ${stepNumber}</span>` +
+                    `<span class="step-content">${escapeHtml(step.content)}</span>` +
+                    `</div>`;
+            } else if (step.type === 'tool_start') {
+                return `<div class="step-item step-tool">` +
+                    `<span class="step-label">调用工具</span>` +
+                    `<span class="step-tool-name">${formatToolName(step.tool)}</span>` +
+                    `<div class="step-tool-input">${escapeHtml(step.input || '{}')}</div>` +
+                    `</div>`;
+            } else if (step.type === 'tool_result') {
+                const isError = step.output && (step.output.includes('denied') || step.output.includes('错误'));
+                const resultClass = isError ? 'step-result-error' : 'step-result-success';
+                const statusIcon = isError ? '✗' : '✓';
+                return `<div class="step-item step-result ${resultClass}">` +
+                    `<span class="step-status">${statusIcon}</span>` +
+                    `<span class="step-content">${escapeHtml(step.output || '执行中...')}</span>` +
+                    `</div>`;
+            }
+            return '';
+        }).join('');
+
+        html += `<div class="reasoning-chain">` +
+            `<div class="reasoning-header" onclick="toggleReasoning(this)">` +
+            `<span class="reasoning-toggle">▼</span>` +
+            `<span>推理过程（${stepNumber} 步）</span>` +
             `</div>` +
-            `<div class="tool-calls-content">${toolsHtml}</div>` +
+            `<div class="reasoning-steps expanded">${stepsHtml}</div>` +
             `</div>`;
     }
-    
+
+    // 2. 展示最终回答
     if (answerContent) {
         html += `<div class="message-text">${escapeHtml(answerContent)}</div>`;
     }
-    
+
     return html;
 }
 
-function toggleToolCalls(header) {
-    const toggle = header.querySelector('.tool-calls-toggle');
+function toggleReasoning(header) {
+    const toggle = header.querySelector('.reasoning-toggle');
     const content = header.nextElementSibling;
-    
-    toggle.classList.toggle('expanded');
-    content.classList.toggle('expanded');
+
+    toggle.classList.toggle('collapsed');
+    content.classList.toggle('collapsed');
 }
 
 function formatToolName(name) {

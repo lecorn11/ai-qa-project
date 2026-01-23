@@ -1,4 +1,7 @@
+import logging
 from langchain_core.tools import tool
+
+logger = logging.getLogger(__name__)
 
 def create_knowledge_search_tool(knowledge_service, knowledge_base_id : str = None):
     """创建知识库搜索工具（工厂函数）
@@ -15,7 +18,13 @@ def create_knowledge_search_tool(knowledge_service, knowledge_base_id : str = No
         当用户询问需要查询文档、资料、知识库内容的问题时，使用此工具。
         输入应该是一个清晰的搜索问题
         """
+        logger.info("【本地】调用知识库搜索工具")
+        return knowledge_service.query(
+            query
+        )
+
         try:
+            knowledge_service.query()
             # 调用知识库检索
             chunks = knowledge_service.get_relevant_chunks(query, top_k=3)
 

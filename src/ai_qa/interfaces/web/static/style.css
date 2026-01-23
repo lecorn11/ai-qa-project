@@ -679,81 +679,155 @@ body {
     margin: 0 4px;
 }
 
-/* 工具调用折叠区域 */
-.tool-calls {
-    margin-bottom: 8px;
+/* ============ 推理链样式（简洁版） ============ */
+.reasoning-chain {
+    margin-bottom: 12px;
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fafafa;
 }
 
-.tool-calls-header {
-    display: inline-flex;
+.reasoning-header {
+    display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 10px;
-    background: #f0f4f8;
-    border-radius: 6px;
+    gap: 8px;
+    padding: 10px 14px;
+    background: #f5f5f5;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 13px;
     color: #666;
     transition: background 0.2s;
 }
 
-.tool-calls-header:hover {
-    background: #e4eaf0;
+.reasoning-header:hover {
+    background: #eee;
 }
 
-.tool-calls-toggle {
+.reasoning-toggle {
     font-size: 10px;
+    color: #999;
     transition: transform 0.2s;
 }
 
-.tool-calls-toggle.expanded {
-    transform: rotate(90deg);
+.reasoning-toggle.collapsed {
+    transform: rotate(-90deg);
 }
 
-.tool-calls-content {
+.reasoning-steps {
+    padding: 8px 12px;
+}
+
+.reasoning-steps.collapsed {
     display: none;
-    margin-top: 6px;
+}
+
+/* 步骤项通用样式 */
+.step-item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px;
     padding: 10px 12px;
-    background: #f8f9fa;
-    border-radius: 6px;
-    font-size: 12px;
-    font-family: 'Monaco', 'Menlo', monospace;
-}
-
-.tool-calls-content.expanded {
-    display: block;
-}
-
-.tool-call-item {
-    margin-bottom: 8px;
-    padding-bottom: 8px;
-    border-bottom: 1px dashed #e0e0e0;
-}
-
-.tool-call-item:last-child {
-    margin-bottom: 0;
-    padding-bottom: 0;
-    border-bottom: none;
-}
-
-.tool-call-name {
-    color: #5856D6;
-    font-weight: 500;
     margin-bottom: 4px;
+    border-radius: 6px;
+    font-size: 13px;
+    line-height: 1.6;
+    background: white;
+    border: 1px solid #eee;
 }
 
-.tool-call-input,
-.tool-call-output {
-    margin: 4px 0;  /* 统一上下间距 */
-    line-height: 1.4;
+.step-item:last-child {
+    margin-bottom: 0;
 }
 
-.tool-call-input {
-    color: #666;
+/* 步骤编号 */
+.step-number {
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 600;
+    color: white;
+    background: #666;
+    padding: 2px 8px;
+    border-radius: 10px;
 }
 
-.tool-call-output {
+/* 步骤内容 */
+.step-content {
+    flex: 1;
+    color: #333;
+    min-width: 0;
+}
+
+/* 思考步骤 */
+.step-thinking {
+    background: #fafafa;
+    border-color: #e0e0e0;
+}
+
+/* 工具调用步骤 */
+.step-tool {
+    background: #f8fafc;
+    border-color: #e0e7ef;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+}
+
+.step-label {
+    font-size: 11px;
+    color: #888;
+}
+
+.step-tool-name {
+    font-weight: 600;
+    color: #1a5fb4;
+    font-size: 13px;
+}
+
+.step-tool-input {
+    width: 100%;
+    padding: 8px 10px;
+    background: #f0f4f8;
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+    color: #555;
+    word-break: break-all;
+    margin-top: 2px;
+}
+
+/* 工具结果步骤 */
+.step-result {
+    background: #f8fdf8;
+    border-color: #d4edda;
+}
+
+.step-result .step-status {
+    flex-shrink: 0;
+    font-weight: 700;
+    font-size: 14px;
+}
+
+.step-result-success .step-status {
     color: #28a745;
+}
+
+.step-result-success .step-content {
+    color: #155724;
+}
+
+.step-result-error {
+    background: #fdf8f8;
+    border-color: #f5c6cb;
+}
+
+.step-result-error .step-status {
+    color: #dc3545;
+}
+
+.step-result-error .step-content {
+    color: #721c24;
 }
 
 /* Agent 消息容器 */
@@ -958,3 +1032,5 @@ body {
     color: #666;
     line-height: 1.4;
 }
+
+

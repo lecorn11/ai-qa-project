@@ -1,5 +1,5 @@
 """MCP server - 知识库服务"""
-
+import logging
 from mcp.server.fastmcp import FastMCP
 
 from ai_qa.application.knowledge_base_service import KnowledgeBaseService
@@ -10,7 +10,7 @@ from ai_qa.infrastructure.embedding.dashscope_embedding import DashScopeEmbeddin
 from ai_qa.infrastructure.vectorstore.postgres_store import PostgresVectorStore
 
 # ============ 创建依赖 ============
-
+logger = logging.getLogger(__name__)
 # 数据库会话
 db = SessionLocal()
 
@@ -53,6 +53,7 @@ def search_knowledge(query: str, kb_id: str = None, top_k: int = 3) -> str:
     :return: 说明
     :rtype: str
     """
+    logger.info("【MCP】调用知识库搜索工具")
 
     chunks = vector_store.search(query, knowledge_base_id=kb_id, top_k=top_k)
 

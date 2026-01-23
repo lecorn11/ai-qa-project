@@ -19,14 +19,13 @@ def create_knowledge_search_tool(knowledge_service, knowledge_base_id : str = No
         输入应该是一个清晰的搜索问题
         """
         logger.info("【本地】调用知识库搜索工具")
-        return knowledge_service.query(
-            query
-        )
+        # return knowledge_service.query(
+        #     query
+        # )
 
         try:
-            knowledge_service.query()
             # 调用知识库检索
-            chunks = knowledge_service.get_relevant_chunks(query, top_k=3)
+            chunks = knowledge_service.get_relevant_chunks(query, top_k=1)
 
             if not chunks:
                 return "知识库中没有找到相关内容"

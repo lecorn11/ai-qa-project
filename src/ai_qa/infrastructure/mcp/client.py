@@ -1,24 +1,163 @@
 import asyncio
 import logging
-
+from abc import ABC
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any
 
-from mcp import ClientSession, StdioServerParameters, stdio_client
-from mcp.types import Tool as MCPTool
 from langchain_core.tools import StructuredTool
+from mcp import ClientSession, StdioServerParameters, stdio_client
+from mcp.client.sse import sse_client
+from mcp.types import Tool as MCPTool
 from pydantic import BaseModel, create_model
 
 logger = logging.getLogger(__name__)
 
+# ============ 传输类型枚举 ============
+class TransportType(str, Enum):
+    """MCP 传输类型"""
+    STDIO = "stdio"
+    SSE = "sse"
+    STREAMABLE_HTTP = "streamable_http"
+
+# ============ 配置类继承体系 ============
 @dataclass
-class MCPServerConfig:
-    """MCP Server 配置"""
+class MCPServerConfig(ABC):
+    """MCP Server 配置基类"""
     name: str
-    command: str
-    args: list[str]
+    transport: TransportType = field(default=TransportType.STDIO)
+
+    @classmethod
+    def from_dict(cls, name: str, data: dict) -> "MCPServerConfig":
+        """工厂方法：根据 transport 类型创建具体配置
+        
+        Args:
+            name: Server 名称
+            data: 配置字典
+            
+        Returns:
+            具体的配置子类实例
+            
+        Raises:
+            ValueError: 未知或不支持的传输类型
+        """
+        transport_str = data.get("transport", "stdio").lower()
+
+        try:
+            transport = TransportType(transport_str)
+        except ValueError:
+            raise ValueError(f"未知的传输类型: {transport_str}")
+        
+        if transport == TransportType.STDIO:
+            return StdioServerConfig(name, data)
+        elif transport == TransportType.SSE:
+            return SSEServerConfig.from_dict(name, data)
+        elif transport == TransportType.STREAMABLE_HTTP:
+            return StreamableHTTPServerConfig.from_dict(name, data)
+        else:
+            raise ValueError(f"不支持的传输类型: {transport}")
+
+@dataclass
+class StdioServerConfig(MCPServerConfig):
+    """Stdio 传输配置（本地子进程）
+    
+    用于连接通过标准输入/输出通信的本地 MCP Server。
+    
+    示例配置：
+        {
+            "transport": "stdio",
+            "command": "npx",
+            "args": ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"]
+        }
+    """
+    command: str = ""
+    args: list[str] = field(default_factory=list)
     env: dict[str, str] = field(default_factory=dict)
     cwd: str | None = None
+
+    def __post_init__(self):
+        object.__setattr__(self, 'transport', TransportType.STDIO)
+        # self.transport = TransportType.STDIO
+
+    @classmethod
+    def from_dict(cls, name: str, data: dict) -> "StdioServerConfig":
+        return cls(
+            name=name,
+            transport=TransportType.STDIO,
+            command=data["command"],
+            args=data.get("args", []),
+            env=data.get("env", {}),
+            cwd=data.get("cwd"),
+        )
+    
+@dataclass
+class SSEServerConfig(MCPServerConfig):
+    """SSE 传输配置（远程服务）
+    
+    用于连接通过 Server-Sent Events 通信的远程 MCP Server。
+    
+    示例配置：
+        {
+            "transport": "sse",
+            "url": "http://localhost:8000/sse",
+            "headers": {"Authorization": "Bearer xxx"}
+        }
+    """
+    url: str = ""
+    headers: dict[str, str] = field(default_factory=dict)
+    timeout: float = 30.0 # 秒
+
+    def __post_init__(self):
+        self.transport = TransportType.SSE
+
+    @classmethod
+    def from_dict(cls, name: str, data: dict) -> "SSEServerConfig":
+        if "url" not in data:
+            raise ValueError("SSE 配置缺少必填字段 'url'")
+        
+        return cls(
+            name=name,
+            transport=TransportType.SSE,
+            url=data["url"],
+            headers=data.get("headers", {}),
+            timeout=data.get("timeout", 30.0),
+        )
+    
+@dataclass
+class StreamableHTTPServerConfig(MCPServerConfig):
+    """Streamable HTTP 传输配置（远程服务，新协议）
+    
+    用于连接通过 Streamable HTTP 通信的远程 MCP Server。
+    这是 MCP 推荐的远程传输方式。
+    
+    示例配置：
+        {
+            "transport": "streamable_http",
+            "url": "http://localhost:8000/mcp",
+            "headers": {"Authorization": "Bearer xxx"}
+        }
+    """
+    url: str = ""
+    headers: dict[str, str] = field(default_factory=dict)
+    timeout: float = 30.0 # 秒
+
+    def __post_init__(self):
+        self.transport = TransportType.STREAMABLE_HTTP
+
+    @classmethod
+    def from_dict(cls, name: str, data: dict) -> "StreamableHTTPServerConfig":
+        if "url" not in data:
+            raise ValueError("HTTP 配置缺少必填字段 'url'")
+        
+        return cls(
+            name=name,
+            transport=TransportType.STREAMABLE_HTTP,
+            url=data["url"],
+            headers=data.get("headers", {}),
+            timeout=data.get("timeout", 30.0),
+        )
+    
+# ============ 连接信息 ============
 
 @dataclass
 class MCPConnection:
@@ -27,12 +166,16 @@ class MCPConnection:
     session: ClientSession
     tools: list[MCPTool]
     # 用于管理连接生命周期的上下文，保存、关闭时需要
-    _stdio_context: Any = None
+    _transport_context: Any = None
     _session_context: Any = None
 
+# ============ 客户端服务 ============
 @dataclass
 class MCPClientService:
-    """MCP 客户端服务"""
+    """MCP 客户端服务
+    
+    管理多个 MCP Server 的连接，支持 stdio、SSE、Streamable HTTP 三种传输方式。
+    """
 
     def __init__(self, config_path: str = None):
         self._connections: dict[str, MCPConnection] = {}
@@ -94,51 +237,128 @@ class MCPClientService:
             if config.name in self._connections:
                 await self._disconnect_unsafe(config.name)
             
-            logger.info(f"正在连接 MCP Server: {config.name}")
-            logger.debug(f"命令：{config.command} {' '.join(config.args)}")
+            logger.info(f"正在连接 MCP Server: {config.name}（transport={config.transport.value}）")
 
-            try:
-                # 构建连接参数
-                server_params = StdioServerParameters(
-                    command=config.command,
-                    args=config.args,
-                    env=config.env if config.env else None,
-                    cwd=config.cwd,
-                )
-
-                # 建立连接
-                stdio_context = stdio_client(server_params)
-                read, write = await stdio_context.__aenter__()
-
-                session_context = ClientSession(read, write)
-                session = await session_context.__aenter__()
-
-                # 初始化
-                init_result = await session.initialize()
-                server_info = init_result.serverInfo
-                logger.info(f"已连接到{server_info.name} v{server_info.version}")
-
-                # 获取工具列表
-                tools_result = await session.list_tools()
-                tools = tools_result.tools
-                logger.info(f"发现{len(tools)} 个工具")
-
-                # 保存连接
-                self._connections[config.name] = MCPConnection(
-                    config=config,
-                    session=session,
-                    tools=tools,
-                    _stdio_context=stdio_context,
-                    _session_context=session_context
-                )
-
-                return tools
-            
-            except Exception as e:
-                logger.error(f"连接 MCPServer 失败：{config.name}, 错误: {e}")
-                raise
+            # 根据传输类型选择连接方法
+            if config.transport == TransportType.STDIO:
+                return await self._connect_stdio(config)
+            elif config.transport == TransportType.SSE:
+                return await self._connect_sse(config)
+            elif config.transport == TransportType.STREAMABLE_HTTP:
+                return await self._connect_streamable_http(config)
+            else:
+                raise ValueError(f"不支持的传输类型: {type(config)}")
 
 
+    async def _connect_stdio(self, config: StdioServerConfig) -> list[MCPTool]:
+        """通过 Stdio 连接"""
+        logger.debug(f"命令：{config.command} {' '.join(config.args)}")
+
+        try:
+            # 构建连接参数
+            server_params = StdioServerParameters(
+                command=config.command,
+                args=config.args,
+                env=config.env if config.env else None,
+                cwd=config.cwd,
+            )
+
+            # 建立连接
+            transport_context = stdio_client(server_params)
+            read, write = await transport_context.__aenter__()
+
+            session_context = ClientSession(read, write)
+            session = await session_context.__aenter__()
+
+            tools = await self._initalize_session(config,session, transport_context, session_context)
+
+            return tools
+        
+        except Exception as e:
+            logger.error(f"Stdio 连接失败：{config.name}, 错误: {e}")
+            raise
+
+
+    async def _connect_sse(self, config: SSEServerConfig) -> list[MCPTool]:
+        """通过 SSE 连接"""
+        logger.debug(f"URL: {config.url}")
+
+        try:
+            # 建立 SSE 连接
+            transport_context = sse_client(
+                url=config.url,
+                headers=config.headers if config.headers else None,
+            )
+            read, write = await transport_context.__aenter__()
+
+            session_context = ClientSession(read, write)
+            session = await session_context.__aenter__()
+
+            tools = await self._initalize_session(config, session, transport_context, session_context)
+
+            return tools
+        
+        except Exception as e:
+            logger.error(f"SSE 连接失败：{config.name}, 错误: {e}")
+            raise
+
+    async def _connect_streamable_http(self, config: StreamableHTTPServerConfig) -> list[MCPTool]:
+        """通过 Streamable HTTP 连接"""
+        logger.debug(f"URL: {config.url}")
+
+        try:
+            # 建立 SSE 连接
+            from mcp.client.streamable_http import streamable_http_client
+
+            transport_context = streamable_http_client(
+                url=config.url,
+                headers=config.headers if config.headers else None,
+            )
+            read, write = await transport_context.__aenter__()
+
+            session_context = ClientSession(read, write)
+            session = await session_context.__aenter__()
+
+            tools = await self._initalize_session(config, session, transport_context, session_context)
+
+            return tools
+        
+        except Exception as e:
+            logger.error(f"Streamable HTTP 连接失败：{config.name}, 错误: {e}")
+            raise
+
+        pass
+
+
+    async def _initalize_session(
+        self,
+        config: MCPServerConfig,
+        session: ClientSession,
+        transport_context: Any,
+        session_context: Any,
+    ) -> list[MCPTool]:
+        """初始化会话并保存连接信息"""
+        # 初始化握手
+        init_result = await session.initialize()
+        server_info = init_result.serverInfo
+        logger.info(f"已连接到 {server_info.name} v{server_info.version}")
+
+        # 获取工具列表
+        tools_result = await session.list_tools()
+        tools = tools_result.tools
+        logger.info(f"发现 {len(tools)} 个工具")
+
+        # 保存连接
+        self._connections[config.name] = MCPConnection(
+            config=config,
+            session=session,
+            tools=tools,
+            _transport_context=transport_context,
+            _session_context=session_context,
+        )
+
+        return tools
+        
     async def disconnect(self, server_name: str) -> bool:
         """断开与指定 Server 的连接"""
         async with self._lock:
@@ -354,14 +574,14 @@ class MCPClientService:
 # ============ 预定义的 Server 配置 ============
 
 # 官方 Filesystem Server
-FILESYSTEM_SERVER = MCPServerConfig(
+FILESYSTEM_SERVER = StdioServerConfig(
     name="filesystem",
     command="npx",
     args=["-y", "@modelcontextprotocol/server-filesystem", "/tmp"],
 )
 
 # 我们的知识库 Server（需要根据实际路径调整）
-KNOWLEDGE_SERVER = MCPServerConfig(
+KNOWLEDGE_SERVER = StdioServerConfig(
     name="knowledge",
     command="/opt/homebrew/Caskroom/miniforge/base/envs/ai-qa/bin/python",
     args=["-m", "ai_qa.infrastructure.mcp.server"],

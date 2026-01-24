@@ -819,7 +819,7 @@ function buildAgentMessageHTML(steps, answerContent) {
                     `<div class="step-tool-input">${escapeHtml(step.input || '{}')}</div>` +
                     `</div>`;
             } else if (step.type === 'tool_result') {
-                const isError = step.output && (step.output.includes('denied') || step.output.includes('错误'));
+                const isError = isToolResultError(step.output);
                 const resultClass = isError ? 'step-result-error' : 'step-result-success';
                 const statusIcon = isError ? '✗' : '✓';
                 return `<div class="step-item step-result ${resultClass}">` +
@@ -853,6 +853,34 @@ function toggleReasoning(header) {
 
     toggle.classList.toggle('collapsed');
     content.classList.toggle('collapsed');
+}
+
+function isToolResultError(output) {
+    if (!output) return false;
+    const trimmed = output.trim();
+
+    if (trimmed.startsWith('工具调用失败') || trimmed.startsWith('错误：')) {
+        return true;
+    }
+
+    if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) {
+        return false;
+    }
+
+    try {
+        const parsed = JSON.parse(trimmed);
+        if (parsed && typeof parsed === 'object') {
+            if (typeof parsed.error_code === 'number') return parsed.error_code !== 0;
+            if (typeof parsed.errorCode === 'number') return parsed.errorCode !== 0;
+            if (typeof parsed.code === 'number') return ![0, 200].includes(parsed.code);
+            if (typeof parsed.success === 'boolean') return parsed.success === false;
+            if (parsed.error) return true;
+        }
+    } catch (e) {
+        return false;
+    }
+
+    return false;
 }
 
 function formatToolName(name) {

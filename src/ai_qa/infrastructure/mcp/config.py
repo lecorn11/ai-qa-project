@@ -11,6 +11,11 @@ logger = logging.getLogger(__name__)
 def load_mcp_config(config_path: str | Path) -> dict[str, MCPServerConfig]:
     """加载 MCP 服务器配置文件
 
+    支持三种传输类型的配置：
+    - stdio: 本地子进程（默认）
+    - sse: SSE 远程服务
+    - streamable_http: Streamable HTTP 远程服务
+
     Args:
         config_path: 配置文件路径
         
@@ -45,9 +50,9 @@ def load_mcp_config(config_path: str | Path) -> dict[str, MCPServerConfig]:
     configs = {}
     for name, server_config in servers.items():
         try:
-            config = _parse_server_config(name, server_config)
+            config = MCPServerConfig.from_dict(name, server_config)
             configs[name] = config
-            logger.debug(f"已加载 MCP Server 配置: {name}")
+            logger.debug(f"已加载 MCP Server 配置: {name} (transport={config.transport.value})")
         except Exception as e:
             logger.error(f"解析 MCP Server '{name}' 配置错误:{e}")
             raise ValueError((f"Server '{name}' 配置错误:{e}"))
@@ -55,27 +60,27 @@ def load_mcp_config(config_path: str | Path) -> dict[str, MCPServerConfig]:
     logger.info(f"共加载 {len(configs)} 个 MCP Server 配置")
     return configs
 
-def _parse_server_config(name: str, config: dict) -> MCPServerConfig:
-    """解析单个服务器配置
-    Args:
-        name: 服务器名称
-        config: 原始配置字典
+# def _parse_server_config(name: str, config: dict) -> MCPServerConfig:
+#     """解析单个服务器配置
+#     Args:
+#         name: 服务器名称
+#         config: 原始配置字典
         
-    Returns:
-        MCPServerConfig 对象
-    """
+#     Returns:
+#         MCPServerConfig 对象
+#     """
 
-    # 必填字段
-    if "command" not in config:
-        raise ValueError("缺少必填字段 'command'")
+#     # 必填字段
+#     if "command" not in config:
+#         raise ValueError("缺少必填字段 'command'")
     
-    return MCPServerConfig(
-        name=name,
-        command=config["command"],
-        args=config.get("args",[]),
-        env=config.get("env",{}),
-        cwd=config.get("cwd"),
-    )
+#     return MCPServerConfig(
+#         name=name,
+#         command=config["command"],
+#         args=config.get("args",[]),
+#         env=config.get("env",{}),
+#         cwd=config.get("cwd"),
+#     )
 
 def get_server_names(config_path: str | Path) -> list[str]:
     """获取配置文件中所有可用的服务器名称

@@ -13,12 +13,14 @@ class MessageItem(BaseModel):
     """消息项"""
     role: str = Field(..., description="角色：user/assistant", examples=["assistant"])
     content: str = Field(..., description="消息内容")
+    reasoning_steps: list[dict] | None = Field(None, description="推理步骤（近 Agent 模式）")
 
 
 class MessageResponse(BaseModel):
     """消息响应（单条，带时间戳）"""
     role: str = Field(..., description="角色：user/assistant", examples=["assistant"])
     content: str = Field(..., description="消息内容")
+    reasoning_steps: list[dict] | None = Field(None, description="推理步骤（近 Agent 模式）")
     timestamp: datetime = Field(..., description="时间戳")
 
 

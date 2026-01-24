@@ -1,12 +1,21 @@
 from datetime import datetime
-from sqlalchemy import (
-    BigInteger, String, Text, SmallInteger, DateTime,
-    ForeignKey, Index, UniqueConstraint
-)
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+
 from pgvector.sqlalchemy import Vector
+from sqlalchemy import (
+    BigInteger,
+    DateTime,
+    ForeignKey,
+    Index,
+    SmallInteger,
+    String,
+    Text,
+    UniqueConstraint,
+)
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from ai_qa.infrastructure.utils.id_generator import generate_id
+
 
 class Base(DeclarativeBase):
     """ORM 基类"""
@@ -132,6 +141,7 @@ class Message(Base):
     conversation_id: Mapped[str] = mapped_column(String(36), ForeignKey("conversations.id"), nullable=False)
     role: Mapped[str] = mapped_column(String(20), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
+    reasoning_steps: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     
     # 关系

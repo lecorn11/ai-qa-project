@@ -46,7 +46,8 @@ class PostgresConversationMemory(ConversationMemoryPort):
         messages = [
             Message(
                 role=MessageRole.USER if msg.role == "user" else MessageRole.ASSISTANT,
-                content=msg.content
+                content=msg.content,
+                reasoning_steps=msg.reasoning_steps, # 新增推理步骤字段
             )
             for msg in db_messages
         ]
@@ -96,6 +97,7 @@ class PostgresConversationMemory(ConversationMemoryPort):
                 conversation_id = db_conversation.id,
                 role = msg.role.value,
                 content = msg.content,
+                reasoning_steps = msg.reasoning_steps,  # 保存推理步骤
             )
             self._db.add(db_message)
 

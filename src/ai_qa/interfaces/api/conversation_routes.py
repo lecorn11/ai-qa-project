@@ -137,7 +137,11 @@ async def get_messages(
     return MessagesResponse(
         session_id=session_id,
         messages=[
-            MessageItem(role=msg.role.value, content=msg.content)
+            MessageItem(
+                role=msg.role.value, 
+                content=msg.content,
+                reasoning_steps=msg.reasoning_steps
+            )
             for msg in conversation.messages
         ],
     )

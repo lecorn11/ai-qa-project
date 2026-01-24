@@ -15,6 +15,7 @@ class Message:
     role: MessageRole
     content: str
     timestamp: datetime = None
+    reasoning_steps: list[dict] | None = None
 
     def __post_init__(self):
         if self.timestamp is None:
@@ -22,10 +23,13 @@ class Message:
     
     def to_dict(self) -> dict:
         """转换为字典格式（用于 API 调用）"""
-        return {
+        result =  {
             "role": self.role.value,
             "content": self.content
         }
+        if self.reasoning_steps:
+            result["reasoning_steps"] = self.reasoning_steps
+        return result
 
 @dataclass
 class Conversation:

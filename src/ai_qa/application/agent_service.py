@@ -175,6 +175,7 @@ class AgentService:
         """流式处理用户输出，返回 SSE 格式的消息流
         
         消息类型：
+        - thinking: AI 思考过程
         - tool_start: 开始调用工具
         - tool_result: 工具返回结果  
         - answer: 最终回答（流式）
@@ -192,26 +193,39 @@ class AgentService:
 
         # 3. Agent 循环调用工具直到有最终回答
         full_response = ""
+        reasoning_steps = []
         
         async for event in self._agent_loop_stream(messages,extra_tools):
             yield event
 
-            # 收集最终回答内容（用于保存历史）
+            # 收集推理步骤和最终回答（用于保存历史）
             try:
                 event_data = event.replace("data: ", "").strip()
                 if event_data:
                     data = json.loads(event_data)
+
+                    # 收集推理步骤
+                    if data.get("type") in ["thinking", "tool_start", "tool_result"]:
+                        reasoning_steps.append({
+                            "type": data["type"],
+                            "content": data.get("content"),
+                            "tool": data.get("tool"),
+                            "input": data.get("input"),
+                            "output": data.get("output"),
+                            "iteration": data.get("iteration")
+                        })
+                    # 收集最终回答
                     if data.get("type") == "answer":
                         full_response += data.get("content","")
-            except:
-                pass
-        
-
+            except Exception as e:
+                logger.warning(f"解析 SSE 事件数据失败: {e}")
+    
 
         # 4. 保存历史对话
         conversation.add_message(MessageRole.USER, user_input)
         if full_response:
-            conversation.add_message(MessageRole.ASSISTANT, full_response)
+            ai_message = conversation.add_message(MessageRole.ASSISTANT, full_response)
+            ai_message.reasoning_steps = reasoning_steps if reasoning_steps else None
         self._memory.save_conversation(conversation)
 
         logger.info(

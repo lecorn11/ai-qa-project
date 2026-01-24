@@ -479,7 +479,7 @@ async function loadMessages(sessionId) {
 
 function renderMessages(messages) {
     const container = document.getElementById('chatContainer');
-    
+
     if (messages.length === 0) {
         container.innerHTML = `
             <div class="welcome-message">
@@ -489,11 +489,24 @@ function renderMessages(messages) {
         `;
         return;
     }
-    
-    container.innerHTML = messages.map(msg => `
-        <div class="message ${msg.role}">${msg.content}</div>
-    `).join('');
-    
+
+    container.innerHTML = '';
+
+    messages.forEach(msg => {
+        const div = document.createElement('div');
+        div.className = `message ${msg.role}`;
+
+        if (msg.role === 'assistant' && msg.reasoning_steps && msg.reasoning_steps.length > 0) {
+            // Assistant 消息且有推理步骤，使用推理链渲染
+            div.innerHTML = buildAgentMessageHTML(msg.reasoning_steps, msg.content);
+        } else {
+            // 普通消息
+            div.textContent = msg.content;
+        }
+
+        container.appendChild(div);
+    });
+
     scrollToBottom();
 }
 

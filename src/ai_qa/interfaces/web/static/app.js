@@ -801,7 +801,8 @@ function buildAgentMessageHTML(steps, answerContent) {
     let html = '';
 
     // 1. 展示推理链（思考 + 工具调用按时间顺序交替）
-    if (steps.length > 0) {
+    // 确保 steps 是数组
+    if (Array.isArray(steps) && steps.length > 0) {
         let stepNumber = 0;  // 步骤计数器（只计算思考步骤）
 
         let stepsHtml = steps.map(step => {

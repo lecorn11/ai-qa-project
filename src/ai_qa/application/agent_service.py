@@ -2,6 +2,7 @@ import json
 import logging
 from typing import AsyncGenerator
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
+from pydantic import ValidationError
 from ai_qa.domain.entities import Conversation, MessageRole
 from ai_qa.domain.ports import ConversationMemoryPort, LLMPort
 
@@ -289,7 +290,14 @@ class AgentService:
                 # 查找并执行工具
                 if tool_name in tool_map:
                     tool_func = tool_map[tool_name]
-                    result = await tool_func.ainvoke(tool_args)
+                    try:
+                        result = await tool_func.ainvoke(tool_args)
+                    except ValidationError as e:
+                        logger.exception("Tool args validation failed")
+                        result = f"工具参数校验失败: {e}"
+                    except Exception as e:
+                        logger.exception("Tool invoke failed")
+                        result = f"工具执行失败: {e}"
                 else:
                     result = f"错误：未知工具{tool_name}"
                 
